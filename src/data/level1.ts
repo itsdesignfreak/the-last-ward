@@ -3,14 +3,13 @@ import { GRID_COLS, GRID_ROWS } from '../constants';
 
 // Waypoints for 20×15 grid — entrance shifted to col 7 to follow the stone road
 export const WAYPOINTS = [
-  { col:  7, row:  0 },  // Enemy Entrance (stone road, top)
-  { col:  7, row:  5 },  // turn east
-  { col: 13, row:  5 },  // turn south
-  { col: 13, row:  8 },  // turn west
-  { col:  4, row:  8 },  // turn south
-  { col:  4, row: 11 },  // turn west
-  { col:  2, row: 11 },  // turn south
-  { col:  2, row: 13 },  // Base (castle, bottom-left)
+  { col: 10, row:  0 },  // Enemy Entrance (stone road, top)
+  { col: 10, row:  6 },  // turn east
+  { col: 13, row:  6 },  // turn south
+  { col: 13, row:  9 },  // turn west
+  { col:  6, row:  9 },  // turn south
+  { col:  6, row: 12 },  // turn west
+  { col:  5, row: 12 },  // Base
 ] as const;
 
 // Building footprints for 20×15 grid: [colStart, rowStart, colEnd, rowEnd]

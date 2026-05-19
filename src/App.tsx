@@ -1,10 +1,13 @@
 import { useState, useCallback } from 'react';
 import { GameCanvas } from './components/GameCanvas';
+import { GridDebugPanel } from './components/GridDebugPanel';
 import {
   STARTING_GOLD, LIVES_START,
   TOWER_COST_ARROW, TOWER_COST_CANNON,
 } from './constants';
 import type { Tower, TowerType } from './types';
+import { DEFAULT_GRID_CONFIG } from './engine/mapRenderer';
+import type { GridConfig } from './engine/mapRenderer';
 
 const TOWER_COST: Record<TowerType, number> = {
   arrow:  TOWER_COST_ARROW,
@@ -17,6 +20,9 @@ export default function App() {
   const [wave]                            = useState(0);
   const [selectedTower, setSelectedTower] = useState<TowerType | null>(null);
   const [towers,        setTowers]        = useState<Tower[]>([]);
+  const [showDebug,       setShowDebug]       = useState(false);
+  const [gridConfig,      setGridConfig]      = useState<GridConfig>(DEFAULT_GRID_CONFIG);
+  const [savedGridConfig, setSavedGridConfig] = useState<GridConfig>(DEFAULT_GRID_CONFIG);
 
   const handleSelectTower = (type: TowerType) => {
     setSelectedTower(prev => prev === type ? null : type);
@@ -38,19 +44,39 @@ export default function App() {
         <h1 className="text-xl font-bold tracking-widest uppercase text-amber-400">
           Ashen Rampart
         </h1>
-        <div className="flex gap-6 text-sm font-mono">
+        <div className="flex items-center gap-6 text-sm font-mono">
           <span className="text-yellow-400">Gold: {gold}</span>
           <span className="text-red-400">Lives: {lives}</span>
           <span className="text-stone-400">Wave: {wave}</span>
+          <button
+            onClick={() => setShowDebug(v => !v)}
+            className={[
+              'text-xs px-2 py-1 rounded border transition-colors',
+              showDebug
+                ? 'bg-amber-700 border-amber-500 text-white'
+                : 'bg-stone-800 border-stone-600 text-stone-400 hover:text-white',
+            ].join(' ')}
+          >
+            🔧 Grid
+          </button>
         </div>
       </header>
 
       <main className="flex flex-1 overflow-hidden">
+        {showDebug && (
+          <GridDebugPanel
+            config={gridConfig}
+            savedConfig={savedGridConfig}
+            onChange={setGridConfig}
+            onSave={() => setSavedGridConfig(gridConfig)}
+          />
+        )}
         <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
           <GameCanvas
             selectedTower={selectedTower}
             towers={towers}
             onPlaceTower={handlePlaceTower}
+            gridConfig={gridConfig}
           />
         </div>
 

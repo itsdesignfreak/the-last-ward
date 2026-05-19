@@ -1,7 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, MAP_BG_SRC } from '../constants';
 import { renderMap, perspHitTest } from '../engine/mapRenderer';
-import type { HoveredTile } from '../engine/mapRenderer';
+import type { HoveredTile, GridConfig } from '../engine/mapRenderer';
+import { DEFAULT_GRID_CONFIG } from '../engine/mapRenderer';
 import type { Tower, TowerType } from '../types';
 import { LEVEL1 } from '../data/level1';
 
@@ -9,27 +10,30 @@ interface Props {
   selectedTower: TowerType | null;
   towers: Tower[];
   onPlaceTower: (col: number, row: number) => void;
+  gridConfig?: GridConfig;
 }
 
-export function GameCanvas({ selectedTower, towers, onPlaceTower }: Props) {
+export function GameCanvas({ selectedTower, towers, onPlaceTower, gridConfig }: Props) {
   const canvasRef        = useRef<HTMLCanvasElement>(null);
   const bgImageRef       = useRef<HTMLImageElement | null>(null);
   const hoveredRef       = useRef<HoveredTile | null>(null);
   const selectedTowerRef = useRef<TowerType | null>(null);
   const towersRef        = useRef<Tower[]>([]);
   const onPlaceTowerRef  = useRef(onPlaceTower);
+  const gridConfigRef    = useRef<GridConfig>(gridConfig ?? DEFAULT_GRID_CONFIG);
 
   // Keep refs in sync with latest props — no stale closures in canvas callbacks
   selectedTowerRef.current = selectedTower;
   towersRef.current        = towers;
   onPlaceTowerRef.current  = onPlaceTower;
+  gridConfigRef.current    = gridConfig ?? DEFAULT_GRID_CONFIG;
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    renderMap(ctx, LEVEL1, bgImageRef.current, hoveredRef.current, towersRef.current);
+    renderMap(ctx, LEVEL1, bgImageRef.current, hoveredRef.current, towersRef.current, gridConfigRef.current);
   }, []);
 
   useEffect(() => {
@@ -39,8 +43,8 @@ export function GameCanvas({ selectedTower, towers, onPlaceTower }: Props) {
     img.src = MAP_BG_SRC;
   }, [redraw]);
 
-  // Redraw when towers change
-  useEffect(() => { redraw(); }, [towers, redraw]);
+  // Redraw when towers or gridConfig change
+  useEffect(() => { redraw(); }, [towers, gridConfig, redraw]);
 
   /** Convert a mouse event to grid (col, row) using the perspective hit-test. */
   const tileAt = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -51,7 +55,7 @@ export function GameCanvas({ selectedTower, towers, onPlaceTower }: Props) {
     const scaleY = CANVAS_HEIGHT / rect.height;
     const sx     = (e.clientX - rect.left) * scaleX;
     const sy     = (e.clientY - rect.top)  * scaleY;
-    return perspHitTest(sx, sy);
+    return perspHitTest(sx, sy, gridConfigRef.current);
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

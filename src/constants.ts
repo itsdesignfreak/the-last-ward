@@ -1,6 +1,6 @@
-// Grid & tile — 72×72px tiles, grid sized to fill 1448×1086 canvas
-export const TILE_W = 72;          // px per tile column
-export const TILE_H = 72;          // px per tile row
+// Grid & tile — 75×75px tiles, grid sized to fill 1448×1086 canvas
+export const TILE_W = 75;          // px per tile column
+export const TILE_H = 75;          // px per tile row
 export const GRID_COLS = 20;       // ⌊1448 / 72⌋
 export const GRID_ROWS = 15;       // ⌊1086 / 72⌋
 
@@ -36,16 +36,20 @@ export const PROJECTILE_SPEED_CANNON = 250;
 // Map background — single image replaces per-tile sprites
 export const MAP_BG_SRC = '/assets/tiles/map-bg.png';
 
-// Grid perspective — per-column skewX fan (existing)
-export const GRID_PERSPECTIVE_MAX_DEG = 5;
+// Grid perspective — per-column skewX fan
+export const GRID_PERSPECTIVE_MAX_DEG = 6;
 
 // Tile appearance
-export const TILE_GAP    = 4;  // px gap between adjacent tiles
-export const TILE_RADIUS = 4;  // px border radius on each tile corner
+export const TILE_GAP    = 10;  // px gap between adjacent tiles
+export const TILE_RADIUS = 2;   // px border radius on each tile corner
 
 // Grid rotateX — tilt the overlay toward the viewer (positive = top recedes)
-export const GRID_ROTATE_X_DEG = 10;
-export const GRID_PERSP_D      = 1200; // perspective distance in canvas pixels
+export const GRID_ROTATE_X_DEG = 22.5;
+export const GRID_PERSP_D      = 2350; // perspective distance in canvas pixels
+
+// Grid origin offset — shift the entire overlay to align with background art
+export const GRID_OFFSET_X = -62;
+export const GRID_OFFSET_Y = 6;
 
 // Asset paths (resolved relative to /public)
 export const ASSETS = {
