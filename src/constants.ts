@@ -39,6 +39,10 @@ export const MAP_BG_SRC = '/assets/tiles/map-bg.png';
 // Grid perspective — per-column skewX fan (existing)
 export const GRID_PERSPECTIVE_MAX_DEG = 5;
 
+// Tile appearance
+export const TILE_GAP    = 4;  // px gap between adjacent tiles
+export const TILE_RADIUS = 4;  // px border radius on each tile corner
+
 // Grid rotateX — tilt the overlay toward the viewer (positive = top recedes)
 export const GRID_ROTATE_X_DEG = 10;
 export const GRID_PERSP_D      = 1200; // perspective distance in canvas pixels

@@ -3,6 +3,7 @@ import {
   TILE_W, TILE_H, CANVAS_WIDTH, CANVAS_HEIGHT,
   GRID_COLS, GRID_ROWS, GRID_PERSPECTIVE_MAX_DEG,
   GRID_ROTATE_X_DEG, GRID_PERSP_D,
+  TILE_GAP, TILE_RADIUS,
 } from '../constants';
 
 // ── Per-column perspective ────────────────────────────────────────────────────
@@ -64,18 +65,75 @@ function perspCenter(col: number, row: number): [number, number] {
   return applyRotX(cx, cy);
 }
 
-/** Trace a tile quad as the current canvas path (call fill/stroke after). */
-function traceTileQuad(ctx: CanvasRenderingContext2D, col: number, row: number) {
-  const [tlX, tlY] = perspCorner(col,     row);
-  const [trX, trY] = perspCorner(col + 1, row);
-  const [brX, brY] = perspCorner(col + 1, row + 1);
-  const [blX, blY] = perspCorner(col,     row + 1);
-  ctx.beginPath();
-  ctx.moveTo(tlX, tlY);
-  ctx.lineTo(trX, trY);
-  ctx.lineTo(brX, brY);
-  ctx.lineTo(blX, blY);
+/**
+ * Compute the 4 screen corners of a tile with TILE_GAP inset applied.
+ * Each edge is shrunk inward by TILE_GAP/2 px in canvas space before
+ * the rotateX projection, so adjacent tiles have a visible gap between them.
+ */
+function tileScreenCorners(
+  col: number, row: number,
+): [[number,number],[number,number],[number,number],[number,number]] {
+  const g  = TILE_GAP / 2;
+  const x0 = col       * TILE_W + g;
+  const x1 = (col + 1) * TILE_W - g;
+  const y0 = row       * TILE_H + g;
+  const y1 = (row + 1) * TILE_H - g;
+  return [
+    applyRotX(x0 + y0 * perspTanAt(col),       y0),  // TL
+    applyRotX(x1 + y0 * perspTanAt(col + 1),   y0),  // TR
+    applyRotX(x1 + y1 * perspTanAt(col + 1),   y1),  // BR
+    applyRotX(x0 + y1 * perspTanAt(col),       y1),  // BL
+  ];
+}
+
+/**
+ * Trace a rounded quadrilateral path (no beginPath / fill / stroke — caller decides).
+ * Each corner is rounded using a quadratic Bézier curve with the given radius.
+ */
+function traceRoundedQuad(
+  ctx: CanvasRenderingContext2D,
+  [tlX, tlY]: [number, number],
+  [trX, trY]: [number, number],
+  [brX, brY]: [number, number],
+  [blX, blY]: [number, number],
+  radius: number,
+) {
+  const lerp = (ax: number, ay: number, bx: number, by: number, t: number): [number, number] =>
+    [ax + (bx - ax) * t, ay + (by - ay) * t];
+  const len = (ax: number, ay: number, bx: number, by: number) =>
+    Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
+
+  const tTop    = radius / len(tlX, tlY, trX, trY);
+  const tRight  = radius / len(trX, trY, brX, brY);
+  const tBottom = radius / len(brX, brY, blX, blY);
+  const tLeft   = radius / len(blX, blY, tlX, tlY);
+
+  const [a0x, a0y] = lerp(tlX, tlY, trX, trY, tTop);      // TL → along top
+  const [a1x, a1y] = lerp(trX, trY, tlX, tlY, tTop);      // TR → along top
+  const [b0x, b0y] = lerp(trX, trY, brX, brY, tRight);    // TR → along right
+  const [b1x, b1y] = lerp(brX, brY, trX, trY, tRight);    // BR → along right
+  const [c0x, c0y] = lerp(brX, brY, blX, blY, tBottom);   // BR → along bottom
+  const [c1x, c1y] = lerp(blX, blY, brX, brY, tBottom);   // BL → along bottom
+  const [d0x, d0y] = lerp(blX, blY, tlX, tlY, tLeft);     // BL → along left
+  const [d1x, d1y] = lerp(tlX, tlY, blX, blY, tLeft);     // TL → along left
+
+  ctx.moveTo(a0x, a0y);
+  ctx.lineTo(a1x, a1y);
+  ctx.quadraticCurveTo(trX, trY, b0x, b0y);
+  ctx.lineTo(b1x, b1y);
+  ctx.quadraticCurveTo(brX, brY, c0x, c0y);
+  ctx.lineTo(c1x, c1y);
+  ctx.quadraticCurveTo(blX, blY, d0x, d0y);
+  ctx.lineTo(d1x, d1y);
+  ctx.quadraticCurveTo(tlX, tlY, a0x, a0y);
   ctx.closePath();
+}
+
+/** Trace a single tile as a rounded, gap-inset quad (call fill/stroke after). */
+function traceTileQuad(ctx: CanvasRenderingContext2D, col: number, row: number) {
+  const [tl, tr, br, bl] = tileScreenCorners(col, row);
+  ctx.beginPath();
+  traceRoundedQuad(ctx, tl, tr, br, bl, TILE_RADIUS);
 }
 
 // ── Public hit-test helper ────────────────────────────────────────────────────
@@ -131,21 +189,11 @@ function drawGridLines(ctx: CanvasRenderingContext2D) {
   ctx.lineWidth   = 1;
   ctx.beginPath();
 
-  // Column lines — each drawn at its own angle
-  for (let c = 0; c <= GRID_COLS; c++) {
-    const [tx, ty] = perspCorner(c, 0);
-    const [bx, by] = perspCorner(c, GRID_ROWS);
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(bx, by);
-  }
-
-  // Row lines — segmented polyline connecting each column corner at the same row
-  for (let r = 0; r <= GRID_ROWS; r++) {
-    const [sx, sy] = perspCorner(0, r);
-    ctx.moveTo(sx, sy);
-    for (let c = 1; c <= GRID_COLS; c++) {
-      const [nx, ny] = perspCorner(c, r);
-      ctx.lineTo(nx, ny);
+  // Draw each tile as a separate rounded card outline
+  for (let row = 0; row < GRID_ROWS; row++) {
+    for (let col = 0; col < GRID_COLS; col++) {
+      const [tl, tr, br, bl] = tileScreenCorners(col, row);
+      traceRoundedQuad(ctx, tl, tr, br, bl, TILE_RADIUS);
     }
   }
 
