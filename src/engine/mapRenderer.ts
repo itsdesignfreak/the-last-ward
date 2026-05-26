@@ -1,4 +1,4 @@
-import type { Direction, LevelData, Tower, TowerType, TileOverrides, Waypoint, Projectile } from '../types';
+import type { Direction, LevelData, Tower, TowerType, TileOverrides, Waypoint, Projectile, ActiveBeam } from '../types';
 import type { Enemy } from './enemy';
 import { enemyGridPos } from './enemy';
 import { TOWER_STATS, towerOccupies } from './towerData';
@@ -286,7 +286,6 @@ function drawObstacleTile(
   h: ReturnType<typeof makeHelpers>,
 ) {
   const [tl, tr, br, bl] = h.tileScreenCorners(col, row);
-  const [cx, cy] = h.perspCenter(col, row);
 
   ctx.fillStyle = OBSTACLE_FILL;
   ctx.beginPath();
@@ -698,8 +697,24 @@ const PROJ_RADIUS: Record<string, number> = {
 };
 
 const ARROW_SPRITE_SIZE  = 40;  // screen px — square draw size for arrow.png
-const HIT_EFFECT_BASE_PX = 24;  // screen px — base size of a hit-effect sprite
+const CANNON_SPRITE_SIZE = 20;  // screen px — cannon-ball is smaller and doesn't rotate
+// Per-type base sizes for hit effects (screen px)
+const HIT_EFFECT_BASE_PX: Partial<Record<TowerType, number>> = {
+  arrow:  24,
+  cannon: 200,
+};
 const HIT_EFFECT_DURATION = 500; // ms — how long the effect plays
+
+// Number of horizontal frames in a hit-effect sprite sheet (1 = single image)
+const HIT_EFFECT_FRAMES: Partial<Record<TowerType, number>> = {
+  cannon: 4,
+};
+
+// If set, locks the effect to a specific frame (0-indexed) instead of animating.
+// Remove the entry to revert to full animation.
+const HIT_EFFECT_PINNED_FRAME: Partial<Record<TowerType, number>> = {
+  cannon: 1, // frame 2 (0-indexed)
+};
 
 export interface HitEffect {
   type:       TowerType;
@@ -752,16 +767,33 @@ export function drawHitEffects(
     }
 
     const [sx, sy] = perspPoint(drawX, drawY);
-    const alpha    = 1 - t;               // fade out
-    const scale    = 1 + t * 0.8;        // grow from 1× → 1.8×
-    const size     = HIT_EFFECT_BASE_PX * scale;
+    const basePx   = HIT_EFFECT_BASE_PX[fx.type] ?? 32;
+    const alpha    = 1 - t;          // fade out
+    const scale    = 1 + t * 1;     // grow from 1× → 2×
+    const size     = basePx * scale;
     const img      = effectImages[fx.type];
 
     ctx.save();
     ctx.globalAlpha = alpha;
 
     if (img) {
-      ctx.drawImage(img, sx - size / 2, sy - size / 2, size, size);
+      const frameCount   = HIT_EFFECT_FRAMES[fx.type] ?? 1;
+      const pinnedFrame  = HIT_EFFECT_PINNED_FRAME[fx.type];
+      const isPinned     = pinnedFrame !== undefined;
+
+      // Pinned mode uses the same grow animation, just locked to one frame
+      const drawSize     = size;
+      const frameIndex   = isPinned
+        ? pinnedFrame!
+        : Math.min(Math.floor(t * frameCount), frameCount - 1);
+
+      if (frameCount > 1) {
+        const frameW = img.naturalWidth  / frameCount;
+        const frameH = img.naturalHeight;
+        ctx.drawImage(img, frameIndex * frameW, 0, frameW, frameH, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+      } else {
+        ctx.drawImage(img, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+      }
     } else {
       // Fallback: bright ring
       ctx.strokeStyle = fx.type === 'mage' ? '#c084fc' : fx.type === 'cannon' ? '#fb923c' : '#fef08a';
@@ -792,15 +824,21 @@ export function drawProjectiles(
     const img      = projImages[proj.type];
 
     if (img) {
-      // Rotate sprite to face movement direction (computed in screen space)
-      const [tx, ty] = perspPoint(proj.targetX, proj.targetY);
-      const angle    = Math.atan2(ty - sy, tx - sx);
-      const half     = ARROW_SPRITE_SIZE / 2;
-      ctx.save();
-      ctx.translate(sx, sy);
-      ctx.rotate(angle);
-      ctx.drawImage(img, -half, -half, ARROW_SPRITE_SIZE, ARROW_SPRITE_SIZE);
-      ctx.restore();
+      if (proj.type === 'cannon') {
+        // Cannonball is spherical — draw centred, no rotation
+        const half = CANNON_SPRITE_SIZE / 2;
+        ctx.drawImage(img, sx - half, sy - half, CANNON_SPRITE_SIZE, CANNON_SPRITE_SIZE);
+      } else {
+        // Arrow (and future directional projectiles) — rotate toward target
+        const [tx, ty] = perspPoint(proj.targetX, proj.targetY);
+        const angle    = Math.atan2(ty - sy, tx - sx);
+        const half     = ARROW_SPRITE_SIZE / 2;
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(angle);
+        ctx.drawImage(img, -half, -half, ARROW_SPRITE_SIZE, ARROW_SPRITE_SIZE);
+        ctx.restore();
+      }
       continue;
     }
 
@@ -821,4 +859,46 @@ export function drawProjectiles(
     ctx.fillStyle = color;
     ctx.fill();
   }
+}
+
+// ── Mage beam rendering ───────────────────────────────────────────────────────
+
+function drawLaserBeam(
+  ctx: CanvasRenderingContext2D,
+  x1: number, y1: number,
+  x2: number, y2: number,
+) {
+  ctx.save();
+  ctx.lineCap = 'round';
+
+  const makeGrad = (nearAlpha: number, farColor: string) => {
+    const g = ctx.createLinearGradient(x1, y1, x2, y2);
+    g.addColorStop(0,    `rgba(220,30,30,${nearAlpha})`);
+    g.addColorStop(0.35, farColor);
+    g.addColorStop(1,    farColor);
+    return g;
+  };
+
+  ctx.strokeStyle = makeGrad(0,    'rgba(220,30,30,0.18)'); ctx.lineWidth = 14;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.strokeStyle = makeGrad(0,    'rgba(255,60,60,0.45)'); ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.strokeStyle = makeGrad(0.05, 'rgba(255,140,140,0.85)'); ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.strokeStyle = makeGrad(0.1,  'rgba(255,240,240,0.95)'); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+
+  ctx.restore();
+}
+
+/** Draw all active mage beams. Add each beam to the Y-sort pass in GameCanvas. */
+export function drawBeam(
+  ctx:        CanvasRenderingContext2D,
+  beam:       ActiveBeam,
+  gridConfig: GridConfig = DEFAULT_GRID_CONFIG,
+): void {
+  const { perspPoint } = makeHelpers(gridConfig);
+  const [x1, y1] = perspPoint(beam.fromX, beam.fromY);
+  const [x2, y2] = perspPoint(beam.targetX, beam.targetY);
+  drawLaserBeam(ctx, x1, y1, x2, y2);
 }

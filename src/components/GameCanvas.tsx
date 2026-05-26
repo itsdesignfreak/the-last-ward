@@ -4,12 +4,12 @@ import {
   renderMap, perspHitTest,
   drawTowerSprite, drawSingleEnemy,
   drawSellHoverOverlay, drawGhostTowerOverlay,
-  drawProjectiles, drawHitEffects, createHitEffect,
+  drawProjectiles, drawHitEffects, createHitEffect, drawBeam,
 } from '../engine/mapRenderer';
 import type { HoveredTile, GridConfig, GhostTower, HitEffect } from '../engine/mapRenderer';
 import { DEFAULT_GRID_CONFIG } from '../engine/mapRenderer';
 import { TOWER_STATS, towerOccupies } from '../engine/towerData';
-import type { Tower, TowerType, TileOverrides, Projectile } from '../types';
+import type { Tower, TowerType, TileOverrides, Projectile, ActiveBeam } from '../types';
 // Tower sprite filenames keyed by TowerType
 const TOWER_SPRITE_FILE: Record<TowerType, string> = {
   arrow:  'archer.png',
@@ -20,6 +20,7 @@ import { LEVEL1 } from '../data/level1';
 import type { Enemy } from '../engine/enemy';
 import { createEnemy, updateEnemy, enemyGridPos } from '../engine/enemy';
 import { createProjectile, updateProjectiles } from '../engine/projectile';
+import { MAGE_DPS } from '../constants';
 
 interface Props {
   selectedTower:        TowerType | null;
@@ -104,6 +105,10 @@ export function GameCanvas({
   // Per-tower last-fire timestamp: key = "col,row"
   const towerLastFireRef = useRef<Record<string, number>>({});
 
+  // ── Mage beam state ────────────────────────────────────────────────────────
+  const beamsRef            = useRef<Map<string, ActiveBeam>>(new Map());
+  const beamAudioPlayingRef = useRef(false);
+
   // ── Render ─────────────────────────────────────────────────────────────────
   const redraw = useCallback((timestamp?: number) => {
     const canvas = canvasRef.current;
@@ -157,12 +162,30 @@ export function GameCanvas({
         draw: () => drawSingleEnemy(ctx, enemy, LEVEL1.waypoints, gridConfigRef.current, skeletonImgRef.current, ts),
       });
     }
+
+    // Hit effects join the Y-sort so they layer correctly with towers
+    for (const fx of hitEffectsRef.current) {
+      if (ts - fx.startMs >= fx.durationMs) continue;
+      const sortRow = fx.y + 0.5; // slight bias so the effect renders in front at its row
+      entities.push({
+        sortRow,
+        draw: () => drawHitEffects(ctx, [fx], ts, gridConfigRef.current, effectImagesRef.current, enemiesRef.current, LEVEL1.waypoints),
+      });
+    }
+
+    // Mage beams — drawn at target row so they layer with entities
+    for (const beam of beamsRef.current.values()) {
+      entities.push({
+        sortRow: beam.targetY,
+        draw: () => drawBeam(ctx, beam, gridConfigRef.current),
+      });
+    }
+
     entities.sort((a, b) => a.sortRow - b.sortRow);
     for (const e of entities) e.draw();
 
     // ── Projectiles (above entities, below UI overlays) ───────────────────────
     drawProjectiles(ctx, projectilesRef.current, gridConfigRef.current, projImagesRef.current);
-    drawHitEffects(ctx, hitEffectsRef.current, ts, gridConfigRef.current, effectImagesRef.current, enemiesRef.current, LEVEL1.waypoints);
 
     // ── Overlays (always on top of all sprites) ───────────────────────────────
     drawSellHoverOverlay(ctx, towersRef.current, hoveredRef.current, tileEditModeRef.current, gridConfigRef.current);
@@ -183,6 +206,7 @@ export function GameCanvas({
     if (isActive && !wasActive) {
       enemiesRef.current           = [];
       projectilesRef.current       = [];
+      beamsRef.current             = new Map();
       towerLastFireRef.current     = {};
       spawnedCountRef.current      = 0;
       lastSpawnMsRef.current       = timestamp;
@@ -209,17 +233,95 @@ export function GameCanvas({
       }
     }
 
-    // Tower firing: each tower finds the nearest in-range living enemy and fires
+    // ── Mage beam tick — continuous DPS, no projectiles ──────────────────────
     const FP = TOWER_FOOTPRINT;
+    const newBeams = new Map<string, ActiveBeam>();
+    // Track which enemy IDs are actively being hit this frame
+    const beamedIds = new Set<number>();
+
     for (const tower of towersRef.current) {
+      if (tower.type !== 'mage') continue;
+      const key  = `${tower.col},${tower.row}`;
+      const tCx  = tower.col + FP / 2;
+      const tCy  = tower.row + FP / 2;
+      const fromY = tCy - 3; // mage visual launch offset (3 tiles up)
+
+      // Find nearest living enemy in range
+      let nearest: Enemy | null = null;
+      let nearestDist = Infinity;
+      for (const enemy of enemiesRef.current) {
+        if (!enemy.alive) continue;
+        const pos  = enemyGridPos(enemy, LEVEL1.waypoints);
+        const dx   = pos.col + 0.5 - tCx;
+        const dy   = pos.row + 0.5 - tCy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= TOWER_STATS.mage.range && dist < nearestDist) {
+          nearest = enemy; nearestDist = dist;
+        }
+      }
+
+      if (nearest) {
+        // Apply DPS damage this frame
+        nearest.hp -= MAGE_DPS * dt;
+        if (nearest.hp <= 0 && nearest.alive) {
+          nearest.alive   = false;
+          nearest.reached = false;
+        }
+        // Slow only while actively in the beam
+        nearest.slowUntil = timestamp + 100;
+        beamedIds.add(nearest.id);
+
+        const pos = enemyGridPos(nearest, LEVEL1.waypoints);
+        newBeams.set(key, {
+          towerKey: key,
+          fromX:    tCx,
+          fromY,
+          targetId: nearest.id,
+          targetX:  pos.col + 0.5,
+          targetY:  pos.row + 0.5,
+        });
+      }
+    }
+
+    // Immediately clear the slow on any enemy NOT currently under a beam
+    for (const enemy of enemiesRef.current) {
+      if (enemy.alive && !beamedIds.has(enemy.id)) {
+        enemy.slowUntil = 0;
+      }
+    }
+
+    beamsRef.current = newBeams;
+
+    // Beam audio — single looping instance, on while any beam is active
+    const anyBeam  = newBeams.size > 0;
+    const beamAudio = launchAudioRef.current.mage;
+    if (beamAudio) {
+      if (anyBeam && !beamAudioPlayingRef.current) {
+        beamAudio.loop        = true;
+        beamAudio.currentTime = 0;
+        beamAudio.play().catch(() => {});
+        beamAudioPlayingRef.current = true;
+      } else if (!anyBeam && beamAudioPlayingRef.current) {
+        beamAudio.pause();
+        beamAudio.currentTime = 0;
+        beamAudioPlayingRef.current = false;
+      }
+    }
+
+    // ── Tower firing: arrow & cannon only (mage uses beam above) ─────────────
+    for (const tower of towersRef.current) {
+      if (tower.type === 'mage') continue;  // handled above
       const stats   = TOWER_STATS[tower.type];
       const key     = `${tower.col},${tower.row}`;
       const lastFire = towerLastFireRef.current[key] ?? 0;
       if (timestamp - lastFire < stats.fireRate) continue;
 
-      // Tower fires from the centre of its footprint
+      // Range centre — footprint centre (used for enemy detection)
       const tCx = tower.col + FP / 2;
-      const tCy = tower.row + FP / 2 - 2;
+      const tCy = tower.row + FP / 2;
+      // Visual launch origin — offset per tower type
+      const launchOffsetY: Partial<Record<TowerType, number>> = { arrow: -2, cannon: -2 };
+      const fromY = tCy + (launchOffsetY[tower.type] ?? -2);
 
       // Find nearest living enemy within range
       let nearest: Enemy | null = null;
@@ -238,7 +340,7 @@ export function GameCanvas({
 
       if (nearest) {
         projectilesRef.current.push(
-          createProjectile(nextProjIdRef.current++, tower.type, tCx, tCy, nearest, LEVEL1.waypoints)
+          createProjectile(nextProjIdRef.current++, tower.type, tCx, fromY, nearest, LEVEL1.waypoints, key)
         );
         towerLastFireRef.current[key] = timestamp;
         playSfx(launchAudioRef.current[tower.type]);
@@ -316,25 +418,45 @@ export function GameCanvas({
   }, []);
 
   useEffect(() => {
-    const img = new Image();
-    img.onload = () => { projImagesRef.current = { ...projImagesRef.current, arrow: img }; };
-    // on error: leave undefined → circle placeholder is used
-    img.src = '/assets/projectiles/arrow.png';
+    const sources: [TowerType, string][] = [
+      ['arrow',  '/assets/projectiles/arrow.png'],
+      ['cannon', '/assets/projectiles/cannon-ball.png'],
+    ];
+    sources.forEach(([type, src]) => {
+      const img = new Image();
+      img.onload = () => { projImagesRef.current = { ...projImagesRef.current, [type]: img }; };
+      img.src = src;
+    });
   }, []);
 
   useEffect(() => {
-    const img = new Image();
-    img.onload = () => { effectImagesRef.current = { ...effectImagesRef.current, arrow: img }; };
-    img.src = '/assets/projectiles/arrow-hit-effect.png';
+    const sources: [TowerType, string][] = [
+      ['arrow',  '/assets/projectiles/arrow-hit-effect.png'],
+      ['cannon', '/assets/projectiles/cannon-hit.png'],
+    ];
+    sources.forEach(([type, src]) => {
+      const img = new Image();
+      img.onload = () => { effectImagesRef.current = { ...effectImagesRef.current, [type]: img }; };
+      img.src = src;
+    });
   }, []);
 
   useEffect(() => {
-    const launch = new Audio('/assets/audio/arrow-launch.mp3');
-    launch.volume = 0.4;
-    const hit = new Audio('/assets/audio/arrow-hit.mp3');
-    hit.volume = 0.5;
-    launchAudioRef.current = { arrow: launch };
-    hitAudioRef.current    = { arrow: hit };
+    const arrowLaunch = new Audio('/assets/audio/arrow-launch.mp3');
+    arrowLaunch.volume = 0.4;
+    const arrowHit = new Audio('/assets/audio/arrow-hit.mp3');
+    arrowHit.volume = 0.5;
+
+    const cannonLaunch = new Audio('/assets/audio/cannon-launch.mp3');
+    cannonLaunch.volume = 0.6;
+    const cannonHit = new Audio('/assets/audio/cannon-hit.mp3');
+    cannonHit.volume = 0.7;
+
+    const mageLaser = new Audio('/assets/audio/mage-laser.mp3');
+    mageLaser.volume = 0.4;
+
+    launchAudioRef.current = { arrow: arrowLaunch, cannon: cannonLaunch, mage: mageLaser };
+    hitAudioRef.current    = { arrow: arrowHit,    cannon: cannonHit };
   }, []);
 
   // Clones the audio element so overlapping sounds play simultaneously

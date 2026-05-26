@@ -13,6 +13,7 @@ export function createProjectile(
   fromRow:   number,   // fractional grid row of the firing tower centre
   target:    Enemy,
   waypoints: readonly Waypoint[],
+  towerKey:  string,
 ): Projectile {
   const pos = enemyGridPos(target, waypoints);
   return {
@@ -20,10 +21,13 @@ export function createProjectile(
     type,
     x:        fromCol,
     y:        fromRow,
+    fromX:    fromCol,
+    fromY:    fromRow,
     targetId: target.id,
     targetX:  pos.col + 0.5,
     targetY:  pos.row + 0.5,
     alive:    true,
+    towerKey,
   };
 }
 
@@ -38,7 +42,7 @@ function applyHit(
   enemies:   Enemy[],
   waypoints: readonly Waypoint[],
   timestamp: number,
-  onHit?:    (type: TowerType, x: number, y: number) => void,
+  onHit?:    (type: TowerType, x: number, y: number, targetId: number) => void,
 ): void {
   const stats = TOWER_STATS[proj.type];
 
