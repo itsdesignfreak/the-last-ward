@@ -10,11 +10,12 @@ import {
   STARTING_GOLD, LIVES_START,
   GOLD_PER_KILL,
   TOWER_SELL_REFUND,
+  TOWER_FOOTPRINT,
 } from './constants';
 import type { Tower, TowerType, TileOverrides } from './types';
 import { TOWER_STATS } from './engine/towerData';
 import { DEFAULT_GRID_CONFIG } from './engine/mapRenderer';
-import type { GridConfig } from './engine/mapRenderer';
+import type { GridConfig, FloatingNumber } from './engine/mapRenderer';
 import { LEVEL1 } from './data/level1';
 
 export default function App() {
@@ -35,6 +36,23 @@ export default function App() {
   // ── Wave overlay ────────────────────────────────────────────────────────────
   const [waveOverlay, setWaveOverlay] = useState<WaveOverlayData | null>(null);
   const overlayIdRef = useRef(0);
+
+  // ── Floating gold numbers (drawn on canvas) ───────────────────────────────
+  const [floatingNumbers, setFloatingNumbers] = useState<FloatingNumber[]>([]);
+  const floatIdRef = useRef(0);
+
+  /** Spawn a floating number at a fractional grid coordinate. */
+  const spawnFloat = useCallback((col: number, row: number, text: string, color: string) => {
+    const id = ++floatIdRef.current;
+    setFloatingNumbers(prev => [
+      ...prev,
+      { id, text, color, col, row, startMs: performance.now() },
+    ]);
+    // Auto-prune after the animation finishes
+    setTimeout(() => {
+      setFloatingNumbers(prev => prev.filter(n => n.id !== id));
+    }, 900);
+  }, []);
 
   // ── Audio settings ────────────────────────────────────────────────────────
   const [showSettings, setShowSettings] = useState(false);
@@ -94,7 +112,9 @@ export default function App() {
     if (gold < cost) return;
     setTowers(prev => [...prev, { col, row, type: selectedTower }]);
     setGold(prev => prev - cost);
-  }, [selectedTower, gold]);
+    const c = TOWER_FOOTPRINT / 2;
+    spawnFloat(col + c, row + c, `-${cost}g`, '#f87171');
+  }, [selectedTower, gold, spawnFloat]);
 
   const canAfford = (type: TowerType) => gold >= TOWER_STATS[type].cost;
 
@@ -104,9 +124,11 @@ export default function App() {
       if (!tower) return prev;
       const refund = Math.floor(TOWER_STATS[tower.type].cost * TOWER_SELL_REFUND);
       setGold(g => g + refund);
+      const c = TOWER_FOOTPRINT / 2;
+      spawnFloat(col + c, row + c, `+${refund}g`, '#34d399');
       return prev.filter(t => !(t.col === col && t.row === row));
     });
-  }, []);
+  }, [spawnFloat]);
 
   const handleStartWave = () => {
     if (waveActive) return;
@@ -120,9 +142,12 @@ export default function App() {
     setLives(prev => Math.max(0, prev - 1));
   }, []);
 
-  const handleEnemyKilled = useCallback(() => {
+  const handleEnemyKilled = useCallback((col?: number, row?: number) => {
     setGold(prev => prev + GOLD_PER_KILL);
-  }, []);
+    if (col !== undefined && row !== undefined) {
+      spawnFloat(col, row, `+${GOLD_PER_KILL}g`, '#fcd34d');
+    }
+  }, [spawnFloat]);
 
   const handleWaveComplete = useCallback(() => {
     setWaveActive(false);
@@ -225,6 +250,7 @@ export default function App() {
             onWaveComplete={handleWaveComplete}
             onSellTower={handleSellTower}
             sfxVolume={sfxVolume}
+            floatingNumbers={floatingNumbers}
           />
         </div>
       </main>
