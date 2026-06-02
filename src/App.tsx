@@ -37,6 +37,9 @@ export default function App() {
   const [waveOverlay, setWaveOverlay] = useState<WaveOverlayData | null>(null);
   const overlayIdRef = useRef(0);
 
+  // ── Lives-lost red flash ───────────────────────────────────────────────────
+  const [livesFlashId, setLivesFlashId] = useState(0);
+
   // ── Floating gold numbers (drawn on canvas) ───────────────────────────────
   const [floatingNumbers, setFloatingNumbers] = useState<FloatingNumber[]>([]);
   const floatIdRef = useRef(0);
@@ -140,6 +143,7 @@ export default function App() {
 
   const handleEnemyReachedBase = useCallback(() => {
     setLives(prev => Math.max(0, prev - 1));
+    setLivesFlashId(n => n + 1);
   }, []);
 
   const handleEnemyKilled = useCallback((col?: number, row?: number) => {
@@ -216,6 +220,15 @@ export default function App() {
       )}
 
       <WaveOverlay data={waveOverlay} onDone={() => setWaveOverlay(null)} />
+
+      {/* Lives-lost red vignette flash */}
+      {livesFlashId > 0 && (
+        <div
+          key={livesFlashId}
+          className="animate-lives-flash pointer-events-none fixed inset-0 z-30"
+          style={{ boxShadow: 'inset 0 0 120px 36px rgba(220,38,38,0.55)' }}
+        />
+      )}
 
       {/* ── Main play area ── */}
       <main className="flex flex-1 overflow-hidden">
