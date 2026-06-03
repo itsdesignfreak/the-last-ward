@@ -8,16 +8,14 @@ interface Props {
 const SPRITE = '/assets/ui/cloud-curtain.png';
 const SCROLL_MS = 3000;
 
-// Opaque cloud-colored backing fills any sprite transparency so the map is
-// fully covered at the start. A thin soft bottom edge keeps the reveal gentle.
-const BACKING = 'linear-gradient(to bottom, #eaeef3, #d3dae2)';
-const SOFT_BOTTOM = 'linear-gradient(to top, transparent 0%, black 5%)';
+// The layer is a tall column (300% of canvas) of overlapping cloud sprites.
+// Heavy overlap means the dense cloud bodies fill each other's thin/feathered
+// gaps, so the whole map is covered by REAL clouds at the start (no flat fill).
+const COPIES   = 9;
+const COPY_H   = 36;   // each copy's height, % of the 300% column (~1.08× canvas)
+const STEP     = 12;   // vertical gap between copies, % of the column
 
-/**
- * One parallax layer = an opaque cloud backing + two cloud sprites stacked
- * vertically (200% canvas tall) for seamless coverage as the curtain lifts.
- * The top copy is flipped so its dense edge meets the bottom copy's dense top.
- */
+/** One parallax layer — a tall column of overlapping cloud sprites. */
 function Layer({ anim, blur, opacity, z, widen }: {
   anim:    string;
   blur:    number;
@@ -31,32 +29,29 @@ function Layer({ anim, blur, opacity, z, widen }: {
       style={{
         left:      `${-widen / 2}%`,
         width:     `${100 + widen}%`,
-        height:    '200%',
+        height:    '300%',
         zIndex:    z,
         opacity,
-        background: BACKING,
         filter:    blur ? `blur(${blur}px)` : undefined,
-        WebkitMaskImage: SOFT_BOTTOM,
-        maskImage:       SOFT_BOTTOM,
         animation: `${anim} ${SCROLL_MS}ms linear forwards`,
         willChange: 'transform',
       }}
     >
-      {/* Top copy — flipped vertically so the dense edge meets the seam */}
-      <img
-        src={SPRITE}
-        alt=""
-        className="block w-full h-1/2 object-cover"
-        style={{ transform: 'scaleY(-1)' }}
-        draggable={false}
-      />
-      {/* Bottom copy — covers the visible map; feathered edge at the bottom */}
-      <img
-        src={SPRITE}
-        alt=""
-        className="block w-full h-1/2 object-cover"
-        draggable={false}
-      />
+      {Array.from({ length: COPIES }).map((_, i) => (
+        <img
+          key={i}
+          src={SPRITE}
+          alt=""
+          draggable={false}
+          className="absolute left-0 w-full object-cover"
+          style={{
+            height: `${COPY_H}%`,
+            bottom: `${i * STEP}%`,
+            // Alternate flips so repeated copies don't look identical
+            transform: i % 2 ? 'scaleY(-1)' : undefined,
+          }}
+        />
+      ))}
     </div>
   );
 }
