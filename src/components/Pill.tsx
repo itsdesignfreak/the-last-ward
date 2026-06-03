@@ -29,7 +29,8 @@ export function Pill({
   children, icon, onClick, active = false, disabled = false,
   variant = 'default', square = false, title, ariaLabel,
 }: Props) {
-  const accent = variant === 'accent';
+  // Active controls (selected tower, toggled-on dev button) adopt the accent fill.
+  const accent = variant === 'accent' || active;
   const bg     = accent ? '#cc6026' : '#333';
   const ring   = accent ? RING_ACCENT : RING_DARK;
   const boxShadow = [ring, SHEEN, accent ? ACCENT_TOP : '']
@@ -47,7 +48,6 @@ export function Pill({
         'relative flex items-center justify-center px-2 py-1.5 overflow-hidden transition-all duration-150',
         square ? 'flex-col gap-1 rounded-[4px]' : 'gap-1 rounded-full',
         disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:brightness-110',
-        active ? 'ring-2 ring-[#cc6026] ring-offset-0' : '',
       ].join(' ')}
       style={{ backgroundColor: bg, boxShadow }}
     >
