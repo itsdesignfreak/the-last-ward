@@ -11,6 +11,7 @@ interface Props {
   waveActive:    boolean;
   onStartWave:   () => void;
   onOpenSettings: () => void;
+  locked?:       boolean;   // disable interaction during the intro
 }
 
 // Tower sprite thumbnails (reuse the in-game tower art)
@@ -35,6 +36,7 @@ export function BottomHUD({
   gold, lives, wave,
   selectedTower, onSelectTower, canAfford,
   waveActive, onStartWave, onOpenSettings,
+  locked = false,
 }: Props) {
   const livesClass = lives <= 5 ? 'text-red-500' : 'text-stone-100';
 
@@ -60,7 +62,7 @@ export function BottomHUD({
             <button
               key={type}
               onClick={() => onSelectTower(type)}
-              disabled={!affordable}
+              disabled={!affordable || locked}
               title={`${stats.label} — ${stats.cost}g`}
               className={[
                 'relative flex flex-col items-center w-[78px] pt-1 pb-1.5 rounded-md border transition-all duration-150',
@@ -95,10 +97,10 @@ export function BottomHUD({
       <div className="flex items-center gap-3">
         <button
           onClick={onStartWave}
-          disabled={waveActive || lives === 0}
+          disabled={waveActive || lives === 0 || locked}
           className={[
             'font-medieval tracking-wide px-6 py-3 rounded-md border-2 transition-all duration-150',
-            waveActive || lives === 0
+            waveActive || lives === 0 || locked
               ? 'bg-amber-950 border-amber-900 text-amber-700/60 cursor-not-allowed'
               : 'bg-amber-700 border-amber-500 text-white hover:bg-amber-600 hover:scale-105 shadow-[0_0_14px_rgba(217,119,6,0.5)]',
           ].join(' ')}

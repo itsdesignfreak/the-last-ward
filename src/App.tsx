@@ -6,11 +6,13 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { BottomHUD } from './components/BottomHUD';
 import { WaveOverlay } from './components/WaveOverlay';
 import type { WaveOverlayData } from './components/WaveOverlay';
+import { CloudCurtain } from './components/CloudCurtain';
 import {
   STARTING_GOLD, LIVES_START,
   GOLD_PER_KILL,
   TOWER_SELL_REFUND,
   TOWER_FOOTPRINT,
+  CANVAS_WIDTH, CANVAS_HEIGHT,
 } from './constants';
 import type { Tower, TowerType, TileOverrides } from './types';
 import { TOWER_STATS } from './engine/towerData';
@@ -32,6 +34,15 @@ export default function App() {
   const [tileOverrides,     setTileOverrides]     = useState<TileOverrides>({});
   const [showObstacles,     setShowObstacles]     = useState(false);
   const [showNPC,           setShowNPC]           = useState(true);
+
+  // ── Cloud curtain intro ──────────────────────────────────────────────────
+  const [cloudsGone, setCloudsGone] = useState(false);  // curtain cleared (~3s)
+  const [playable,   setPlayable]   = useState(false);  // interactive after UI fade
+
+  const handleCloudsDone = useCallback(() => {
+    setCloudsGone(true);
+    setTimeout(() => setPlayable(true), 600);  // after the UI fade-in
+  }, []);
 
   // ── Wave overlay ────────────────────────────────────────────────────────────
   const [waveOverlay, setWaveOverlay] = useState<WaveOverlayData | null>(null);
@@ -172,8 +183,11 @@ export default function App() {
 
   return (
     <div className="h-screen bg-stone-950 text-stone-100 flex flex-col overflow-hidden">
-      {/* ── Minimal top bar: title + dev tools ── */}
-      <header className="shrink-0 flex items-center justify-between px-6 py-2 bg-stone-950/80 border-b border-amber-900/30">
+      {/* ── Minimal top bar: title + dev tools (fades in after curtain) ── */}
+      <header className={[
+        'shrink-0 flex items-center justify-between px-6 py-2 bg-stone-950/80 border-b border-amber-900/30 transition-opacity duration-500',
+        cloudsGone ? 'opacity-100' : 'opacity-0',
+      ].join(' ')}>
         <h1 className="font-medieval text-lg font-bold tracking-[0.3em] uppercase text-amber-400">
           Ashen Rampart
         </h1>
@@ -247,39 +261,56 @@ export default function App() {
           />
         )}
         <div className="flex-1 min-h-0 flex items-center justify-center p-2 overflow-hidden">
-          <GameCanvas
-            selectedTower={selectedTower}
-            towers={towers}
-            onPlaceTower={handlePlaceTower}
-            gridConfig={gridConfig}
-            tileOverrides={tileOverrides}
-            tileEditMode={showTileEditor}
-            onToggleTile={handleToggleTile}
-            showObstacles={showObstacles}
-            showNPC={showNPC}
-            waveActive={waveActive}
-            onEnemyReachedBase={handleEnemyReachedBase}
-            onEnemyKilled={handleEnemyKilled}
-            onWaveComplete={handleWaveComplete}
-            onSellTower={handleSellTower}
-            sfxVolume={sfxVolume}
-            floatingNumbers={floatingNumbers}
-          />
+          {/* Aspect-ratio wrapper sized exactly like the canvas, so the curtain
+              (absolute inset-0) covers only the map area. */}
+          <div
+            className="relative"
+            style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`, maxWidth: '100%', maxHeight: '100%' }}
+          >
+            <GameCanvas
+              selectedTower={selectedTower}
+              towers={towers}
+              onPlaceTower={handlePlaceTower}
+              gridConfig={gridConfig}
+              tileOverrides={tileOverrides}
+              tileEditMode={showTileEditor}
+              onToggleTile={handleToggleTile}
+              showObstacles={showObstacles}
+              showNPC={showNPC}
+              waveActive={waveActive}
+              onEnemyReachedBase={handleEnemyReachedBase}
+              onEnemyKilled={handleEnemyKilled}
+              onWaveComplete={handleWaveComplete}
+              onSellTower={handleSellTower}
+              sfxVolume={sfxVolume}
+              floatingNumbers={floatingNumbers}
+            />
+            {/* Cloud curtain covers ONLY the canvas; unmounts when cleared */}
+            {!cloudsGone && <CloudCurtain onComplete={handleCloudsDone} />}
+          </div>
         </div>
       </main>
 
-      {/* ── Bottom HUD ── */}
-      <BottomHUD
-        gold={gold}
-        lives={lives}
-        wave={wave}
-        selectedTower={selectedTower}
-        onSelectTower={handleSelectTower}
-        canAfford={canAfford}
-        waveActive={waveActive}
-        onStartWave={handleStartWave}
-        onOpenSettings={() => setShowSettings(true)}
-      />
+      {/* ── Bottom HUD (hidden during intro, fades in after the curtain) ── */}
+      <div
+        className={[
+          'transition-opacity duration-500 delay-150',
+          cloudsGone ? 'opacity-100' : 'opacity-0',
+        ].join(' ')}
+      >
+        <BottomHUD
+          gold={gold}
+          lives={lives}
+          wave={wave}
+          selectedTower={selectedTower}
+          onSelectTower={handleSelectTower}
+          canAfford={canAfford}
+          waveActive={waveActive}
+          onStartWave={handleStartWave}
+          onOpenSettings={() => setShowSettings(true)}
+          locked={!playable}
+        />
+      </div>
     </div>
   );
 }

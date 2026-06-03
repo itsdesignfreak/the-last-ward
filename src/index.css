@@ -37,6 +37,19 @@ body {
 .animate-overlay-in  { animation: overlayIn 300ms ease-out forwards; }
 .animate-overlay-out { animation: overlayOut 400ms ease-in forwards; }
 
+/* ── Cloud curtain entrance ──────────────────────────────────────────── */
+/* Each layer is 200% of the canvas tall (two stacked sprites). Foreground
+   travels 1.25× canvas-height (clears ~2.4s), background 1.0× (clears 3.0s)
+   → exact 0.8x parallax ratio, both fully cleared by 3s. */
+@keyframes cloudCurtainFg {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-62.5%); }
+}
+@keyframes cloudCurtainBg {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+
 /* ── Lives-lost red vignette flash ───────────────────────────────────── */
 @keyframes livesFlash {
   0%   { opacity: 0; }
