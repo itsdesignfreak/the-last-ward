@@ -8,10 +8,15 @@ interface Props {
 const SPRITE = '/assets/ui/cloud-curtain.png';
 const SCROLL_MS = 3000;
 
+// Opaque cloud-colored backing fills any sprite transparency so the map is
+// fully covered at the start. A thin soft bottom edge keeps the reveal gentle.
+const BACKING = 'linear-gradient(to bottom, #eaeef3, #d3dae2)';
+const SOFT_BOTTOM = 'linear-gradient(to top, transparent 0%, black 5%)';
+
 /**
- * One parallax layer = two cloud sprites stacked vertically (200% canvas tall)
- * so coverage stays seamless as the curtain lifts. The top copy is flipped so
- * its dense edge meets the bottom copy's dense top (no seam).
+ * One parallax layer = an opaque cloud backing + two cloud sprites stacked
+ * vertically (200% canvas tall) for seamless coverage as the curtain lifts.
+ * The top copy is flipped so its dense edge meets the bottom copy's dense top.
  */
 function Layer({ anim, blur, opacity, z, widen }: {
   anim:    string;
@@ -29,7 +34,10 @@ function Layer({ anim, blur, opacity, z, widen }: {
         height:    '200%',
         zIndex:    z,
         opacity,
+        background: BACKING,
         filter:    blur ? `blur(${blur}px)` : undefined,
+        WebkitMaskImage: SOFT_BOTTOM,
+        maskImage:       SOFT_BOTTOM,
         animation: `${anim} ${SCROLL_MS}ms linear forwards`,
         willChange: 'transform',
       }}
