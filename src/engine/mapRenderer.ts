@@ -13,6 +13,7 @@ import {
   TILE_GAP, TILE_RADIUS,
   GRID_OFFSET_X, GRID_OFFSET_Y,
   TOWER_FOOTPRINT,
+  TOWER_SHADOW,
 } from '../constants';
 
 // ── Grid configuration ────────────────────────────────────────────────────────
@@ -363,15 +364,37 @@ function drawTowerPlaceholder(
   type: TowerType,
   h:    ReturnType<typeof makeHelpers>,
   img?: HTMLImageElement,
+  shadowImg?: HTMLImageElement,
 ) {
   const FP = TOWER_FOOTPRINT;
   // Centre of the FP×FP footprint block
   const [cx, cy] = h.perspPoint(col + FP / 2, row + FP / 2);
   const drawW = TOWER_W * FP;
 
+  // Tower draw box: bottom-anchored at the footprint centre.
+  const drawX = cx - drawW / 2;
+  const drawY = cy - TOWER_H + 50;
+
   if (img) {
-    // Bottom of sprite sits slightly below the footprint centre
-    ctx.drawImage(img, cx - drawW / 2, cy - TOWER_H + 50, drawW, TOWER_H);
+    // 1. Drop shadow (separate *-shadow.png), offset from the tile centre and
+    //    drawn semi-transparent — rendered BEHIND the tower sprite.
+    if (shadowImg) {
+      // Per-tower shadow: anchored at the tower's base (bottom of the sprite
+      // box) using its configured height, then nudged by the offsets.
+      const s = TOWER_SHADOW[type];
+      const shadowBaseY = drawY + TOWER_H - s.h;
+      ctx.save();
+      ctx.globalAlpha = s.opacity;
+      ctx.drawImage(
+        shadowImg,
+        drawX + s.offsetX,
+        shadowBaseY + s.offsetY,
+        s.w, s.h,
+      );
+      ctx.restore();
+    }
+    // 2. Tower sprite, centred on the tile as normal.
+    ctx.drawImage(img, drawX, drawY, drawW, TOWER_H);
     return;
   }
 
@@ -526,8 +549,9 @@ export function drawTowerSprite(
   tower:      Tower,
   gridConfig: GridConfig = DEFAULT_GRID_CONFIG,
   img?:       HTMLImageElement,
+  shadowImg?: HTMLImageElement,
 ): void {
-  drawTowerPlaceholder(ctx, tower.col, tower.row, tower.type, makeHelpers(gridConfig), img);
+  drawTowerPlaceholder(ctx, tower.col, tower.row, tower.type, makeHelpers(gridConfig), img, shadowImg);
 }
 
 /** Draw the sell-hover outline over a tower's footprint. Call after all entity sprites. */

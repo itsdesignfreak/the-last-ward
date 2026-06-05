@@ -17,6 +17,13 @@ const TOWER_SPRITE_FILE: Record<TowerType, string> = {
   mage:   'mage.png',
   cannon: 'cannon.png',
 };
+// Optional drop-shadow sprite per tower, drawn behind the tower. Files that
+// don't exist yet simply fail to load and the tower renders with no shadow.
+const TOWER_SHADOW_FILE: Record<TowerType, string> = {
+  arrow:  'archer-shadow.png',
+  mage:   'mage-shadow.png',
+  cannon: 'cannon-shadow.png',
+};
 import { LEVEL1 } from '../data/level1';
 import type { Enemy } from '../engine/enemy';
 import { createEnemy, updateEnemy, enemyGridPos } from '../engine/enemy';
@@ -66,6 +73,7 @@ export function GameCanvas({
   const bgImageRef       = useRef<HTMLImageElement | null>(null);
   const skeletonImgRef   = useRef<HTMLImageElement | null>(null);
   const towerImagesRef   = useRef<Partial<Record<TowerType, HTMLImageElement>>>({});
+  const towerShadowImagesRef = useRef<Partial<Record<TowerType, HTMLImageElement>>>({});
   const projImagesRef      = useRef<Partial<Record<TowerType, HTMLImageElement>>>({});
   const effectImagesRef    = useRef<Partial<Record<TowerType, HTMLImageElement>>>({});
   const hitEffectsRef      = useRef<HitEffect[]>([]);
@@ -183,7 +191,7 @@ export function GameCanvas({
     for (const tower of towersRef.current) {
       entities.push({
         sortRow: tower.row + TOWER_FOOTPRINT / 2,
-        draw: () => drawTowerSprite(ctx, tower, gridConfigRef.current, towerImagesRef.current[tower.type]),
+        draw: () => drawTowerSprite(ctx, tower, gridConfigRef.current, towerImagesRef.current[tower.type], towerShadowImagesRef.current[tower.type]),
       });
     }
     for (const enemy of enemiesRef.current) {
@@ -511,6 +519,17 @@ export function GameCanvas({
         towerImagesRef.current = { ...towerImagesRef.current, [type]: img };
       };
       // on error: leave undefined → drawTowerPlaceholder falls back to the circle placeholder
+      img.src = `/assets/towers/${file}`;
+    });
+  }, []);
+
+  useEffect(() => {
+    (Object.entries(TOWER_SHADOW_FILE) as [TowerType, string][]).forEach(([type, file]) => {
+      const img = new Image();
+      img.onload = () => {
+        towerShadowImagesRef.current = { ...towerShadowImagesRef.current, [type]: img };
+      };
+      // on error (file not added yet): leave undefined → tower renders with no shadow
       img.src = `/assets/towers/${file}`;
     });
   }, []);
