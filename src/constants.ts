@@ -21,6 +21,21 @@ export const TOWER_FIRE_RATE_CANNON = 2500;
 export const TOWER_SELL_REFUND = 0.5;   // fraction of cost returned on sell
 export const TOWER_FOOTPRINT   = 2;     // tiles per side (1 = single tile, 2 = 2×2)
 
+// Tower drop shadow — a separate *-shadow.png drawn behind the tower sprite,
+// anchored at the tower base, offset and sized per tower type.
+export interface TowerShadowConfig {
+  w:       number;   // draw width  (px)
+  h:       number;   // draw height (px)
+  offsetX: number;   // px right of the tower draw position
+  offsetY: number;   // px down  of the tower draw position
+  opacity: number;   // globalAlpha applied to the shadow sprite
+}
+export const TOWER_SHADOW: Record<import('./types').TowerType, TowerShadowConfig> = {
+  arrow:  { w: 230, h: 200, offsetX: 0, offsetY: -5, opacity: 1 },
+  mage:   { w: 230, h: 170, offsetX: 0, offsetY: 0, opacity: 1 },
+  cannon: { w: 230, h: 181, offsetX: 0, offsetY: 0, opacity: 1 },
+};
+
 // Projectiles — damage, speed (tiles/sec), effects
 export const TOWER_DAMAGE_ARROW   = 25;
 export const TOWER_DAMAGE_MAGE    = 15;
