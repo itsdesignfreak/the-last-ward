@@ -47,7 +47,7 @@ export function Pill({
       aria-label={ariaLabel}
       className={[
         'group relative flex items-center justify-center px-2 py-1.5 transition-all duration-150',
-        square ? 'flex-col gap-1 rounded-[4px]' : 'gap-1 rounded-full',
+        square ? 'flex-col gap-2 rounded-[4px]' : 'gap-1 rounded-full',
         disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:brightness-110',
       ].join(' ')}
       style={{ backgroundColor: bg, boxShadow }}
