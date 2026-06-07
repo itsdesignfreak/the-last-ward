@@ -33,8 +33,8 @@ import type { CatNpc } from '../engine/catNpc';
 import { createCatNpc, updateCatNpc } from '../engine/catNpc';
 import type { BirdNpc } from '../engine/birdNpc';
 import {
-  createBird, updateBird, isBirdOffScreen,
-  MAX_BIRDS, BIRD_SPAWN_MIN_MS, BIRD_SPAWN_MAX_MS,
+  createBird, createBirdOnScreen, updateBird, isBirdOffScreen,
+  MAX_BIRDS, BIRD_INITIAL_COUNT, BIRD_SPAWN_MIN_MS, BIRD_SPAWN_MAX_MS,
 } from '../engine/birdNpc';
 
 interface Props {
@@ -454,8 +454,12 @@ export function GameCanvas({
     }
 
     // ── Bird NPC tick ─────────────────────────────────────────────────────────
-    // Initialise spawn timer on the very first tick
+    // On the very first tick: seed a couple of birds already in the air so the
+    // map looks alive the moment it appears, then arm the spawn timer.
     if (nextBirdSpawnRef.current < 0) {
+      for (let i = 0; i < BIRD_INITIAL_COUNT; i++) {
+        birdsRef.current.push(createBirdOnScreen(CANVAS_WIDTH, CANVAS_HEIGHT));
+      }
       nextBirdSpawnRef.current = timestamp + BIRD_SPAWN_MIN_MS
         + Math.random() * (BIRD_SPAWN_MAX_MS - BIRD_SPAWN_MIN_MS);
     }
