@@ -10,6 +10,7 @@ export const BIRD_FPS        = 12;
 export const BIRD_FRAME_COUNT = 4;
 export const BIRD_DRAW_SIZE  = 56;   // same visual size as the cat
 export const MAX_BIRDS       = 3;
+export const BIRD_INITIAL_COUNT = 2; // birds already in the air when the map appears
 
 // Wave flight parameters
 export const BIRD_WAVE_AMPLITUDE = 18;   // px — max vertical deviation
@@ -40,6 +41,14 @@ export function createBird(canvasWidth: number, canvasHeight: number): BirdNpc {
   // Random start phase so multiple birds don't bob in sync
   const wavePhase = Math.random() * Math.PI * 2;
   return { x, y: baseY, baseY, wavePhase, speed, dir, frameIndex: 0, frameAccMs: 0 };
+}
+
+/** Like createBird but positioned already on-screen — used to seed the map so
+ *  birds are visible the moment it appears, instead of flying in from an edge. */
+export function createBirdOnScreen(canvasWidth: number, canvasHeight: number): BirdNpc {
+  const bird = createBird(canvasWidth, canvasHeight);
+  bird.x = canvasWidth * (0.15 + Math.random() * 0.7);
+  return bird;
 }
 
 // ── Per-frame update ──────────────────────────────────────────────────────────
