@@ -14,7 +14,7 @@ import {
   TOWER_FOOTPRINT,
   CANVAS_WIDTH, CANVAS_HEIGHT,
   MAX_WAVES,
-  INTRO_FADE_IN_MS, INTRO_HOLD_MS, INTRO_TITLE_OUT_MS, INTRO_PAUSE_MS,
+  INTRO_FADE_IN_MS, INTRO_HOLD_MS,
   INTRO_MAP_EXPAND_MS, INTRO_UI_IN_MS, INTRO_MAP_EASE,
   INTRO_MAP_MAX_SIZE,
 } from './constants';
@@ -39,33 +39,28 @@ export default function App() {
   const [showObstacles,     setShowObstacles]     = useState(false);
   const [showNPC,           setShowNPC]           = useState(true);
 
-  // ── Intro animation (title screen → game) ────────────────────────────────────
-  // Phase 0 start (bg only) · 1 title+map fade in & hold · 2 title fades out
-  // · 3 pause · 4 map slides up + expands · 5 HUD/UI fades in · 6 done.
+  // ── Intro animation (map → game) ─────────────────────────────────────────────
+  // Phase 0 start (bg only) · 1 map fades in (small, centered) & holds
+  // · 2 map expands to fill · 3 HUD/UI fades in · 4 done.
   const [introPhase, setIntroPhase] = useState(0);
   useEffect(() => {
-    const titleOutAt = INTRO_FADE_IN_MS + INTRO_HOLD_MS;
-    const pauseAt    = titleOutAt + INTRO_TITLE_OUT_MS;
-    const expandAt   = pauseAt + INTRO_PAUSE_MS;
-    const uiAt       = expandAt + INTRO_MAP_EXPAND_MS;
-    const doneAt     = uiAt + INTRO_UI_IN_MS;
+    const expandAt = INTRO_FADE_IN_MS + INTRO_HOLD_MS;
+    const uiAt     = expandAt + INTRO_MAP_EXPAND_MS;
+    const doneAt   = uiAt + INTRO_UI_IN_MS;
 
     const raf = requestAnimationFrame(() => setIntroPhase(1)); // trigger fade-in
     const timers = [
-      setTimeout(() => setIntroPhase(2), titleOutAt),
-      setTimeout(() => setIntroPhase(3), pauseAt),
-      setTimeout(() => setIntroPhase(4), expandAt),
-      setTimeout(() => setIntroPhase(5), uiAt),
-      setTimeout(() => setIntroPhase(6), doneAt),
+      setTimeout(() => setIntroPhase(2), expandAt),
+      setTimeout(() => setIntroPhase(3), uiAt),
+      setTimeout(() => setIntroPhase(4), doneAt),
     ];
     return () => { cancelAnimationFrame(raf); timers.forEach(clearTimeout); };
   }, []);
 
   // Derived intro flags
   const introMapVisible = introPhase >= 1;
-  const introMapFull    = introPhase >= 4;
-  const introTitleShown = introPhase >= 1 && introPhase < 2;
-  const introUiVisible  = introPhase >= 5;
+  const introMapFull    = introPhase >= 2;
+  const introUiVisible  = introPhase >= 3;
 
   // ── Wave overlay ────────────────────────────────────────────────────────────
   const [waveOverlay, setWaveOverlay] = useState<WaveOverlayData | null>(null);
@@ -285,23 +280,7 @@ export default function App() {
             onClear={() => setTileOverrides({})}
           />
         )}
-        <div className="relative flex-1 min-h-0 flex flex-col items-center justify-center gap-6 p-8 overflow-hidden">
-          {/* ── Intro title (Step 1): logo + "The Last Ward" above the map ── */}
-          {/* In flow (above the map) until the map expands, so they stay a   */}
-          {/* centered group on any viewport.                                 */}
-          {introPhase >= 1 && introPhase < 4 && (
-            <div
-              className="pointer-events-none flex shrink-0 flex-col items-center gap-6 transition-opacity"
-              style={{
-                opacity: introTitleShown ? 1 : 0,
-                transitionDuration: `${introPhase >= 2 ? INTRO_TITLE_OUT_MS : INTRO_FADE_IN_MS}ms`,
-              }}
-            >
-              <img src="/assets/ui/icons/logo.svg" alt="" className="block h-[27px] w-10" draggable={false} />
-              <span className="text-[40px] leading-none text-black">The Last Ward</span>
-            </div>
-          )}
-
+        <div className="relative flex-1 min-h-0 flex items-center justify-center p-8 overflow-hidden">
           {/* Wooden picture-frame around the map (border-image from the Figma asset) */}
           <div
             className="relative"

@@ -68,15 +68,13 @@ export const MAX_WAVES            = 3;    // V1 scope — game ends after wave 3
 export const PROJECTILE_SPEED_ARROW = 400; // px per second
 export const PROJECTILE_SPEED_CANNON = 250;
 
-// Intro / title-screen animation (Steps 1–4)
-export const INTRO_FADE_IN_MS    = 1000; // title + map fade in (Step 1)
-export const INTRO_HOLD_MS       = 2000; // hold the title screen so the title can be read
-export const INTRO_TITLE_OUT_MS  = 600;  // title fade out (Step 2)
-export const INTRO_PAUSE_MS      = 300;  // pause after title out
-export const INTRO_MAP_EXPAND_MS = 1000; // map slides up + expands to fill (Step 3)
-export const INTRO_UI_IN_MS      = 500;  // HUD + tower panel fade in (Step 4)
+// Intro animation: map fades in centered, holds, then expands to fill
+export const INTRO_FADE_IN_MS    = 1000; // map fades in (centered, small)
+export const INTRO_HOLD_MS       = 1000; // brief beat before the map expands
+export const INTRO_MAP_EXPAND_MS = 1000; // map expands to fill the game area
+export const INTRO_UI_IN_MS      = 500;  // HUD + UI fade in
 export const INTRO_MAP_EASE      = 'cubic-bezier(0.4, 0, 0.2, 1)'; // map expand easing
-export const INTRO_MAP_MAX_SIZE  = '64%'; // map max-w/h on the title screen (grows to 100%)
+export const INTRO_MAP_MAX_SIZE  = '64%'; // map max-w/h while small (grows to 100%)
 
 // Map background — single image replaces per-tile sprites
 export const MAP_BG_SRC = '/assets/tiles/map-bg.png';
