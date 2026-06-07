@@ -16,7 +16,7 @@ import {
   MAX_WAVES,
   INTRO_FADE_IN_MS, INTRO_HOLD_MS, INTRO_TITLE_OUT_MS, INTRO_PAUSE_MS,
   INTRO_MAP_EXPAND_MS, INTRO_UI_IN_MS, INTRO_MAP_EASE,
-  INTRO_MAP_SCALE, INTRO_MAP_SHIFT_Y,
+  INTRO_MAP_MAX_SIZE,
 } from './constants';
 import type { Tower, TowerType, TileOverrides } from './types';
 import { TOWER_STATS } from './engine/towerData';
@@ -285,11 +285,13 @@ export default function App() {
             onClear={() => setTileOverrides({})}
           />
         )}
-        <div className="relative flex-1 min-h-0 flex items-center justify-center p-8 overflow-hidden">
+        <div className="relative flex-1 min-h-0 flex flex-col items-center justify-center gap-6 p-8 overflow-hidden">
           {/* ── Intro title (Step 1): logo + "The Last Ward" above the map ── */}
-          {introPhase < 6 && (
+          {/* In flow (above the map) until the map expands, so they stay a   */}
+          {/* centered group on any viewport.                                 */}
+          {introPhase >= 1 && introPhase < 4 && (
             <div
-              className="pointer-events-none absolute left-1/2 top-[7%] z-10 flex -translate-x-1/2 flex-col items-center gap-6 transition-opacity"
+              className="pointer-events-none flex shrink-0 flex-col items-center gap-6 transition-opacity"
               style={{
                 opacity: introTitleShown ? 1 : 0,
                 transitionDuration: `${introPhase >= 2 ? INTRO_TITLE_OUT_MS : INTRO_FADE_IN_MS}ms`,
@@ -305,8 +307,8 @@ export default function App() {
             className="relative"
             style={{
               aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-              maxWidth: '100%',
-              maxHeight: '100%',
+              maxWidth: introMapFull ? '100%' : INTRO_MAP_MAX_SIZE,
+              maxHeight: introMapFull ? '100%' : INTRO_MAP_MAX_SIZE,
               borderStyle: 'solid',
               borderWidth: '18px',
               borderImageSource: 'url(/assets/ui/map-frame.png)',
@@ -314,8 +316,7 @@ export default function App() {
               borderImageWidth: '18px',
               filter: 'drop-shadow(0 11px 6.5px rgba(0,0,0,0.5))',
               opacity: introMapVisible ? 1 : 0,
-              transform: introMapFull ? 'none' : `translateY(${INTRO_MAP_SHIFT_Y}) scale(${INTRO_MAP_SCALE})`,
-              transition: `opacity ${INTRO_FADE_IN_MS}ms ease-out, transform ${INTRO_MAP_EXPAND_MS}ms ${INTRO_MAP_EASE}`,
+              transition: `opacity ${INTRO_FADE_IN_MS}ms ease-out, max-width ${INTRO_MAP_EXPAND_MS}ms ${INTRO_MAP_EASE}, max-height ${INTRO_MAP_EXPAND_MS}ms ${INTRO_MAP_EASE}`,
             }}
           >
             <GameCanvas

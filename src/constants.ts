@@ -76,8 +76,7 @@ export const INTRO_PAUSE_MS      = 300;  // pause after title out
 export const INTRO_MAP_EXPAND_MS = 1000; // map slides up + expands to fill (Step 3)
 export const INTRO_UI_IN_MS      = 500;  // HUD + tower panel fade in (Step 4)
 export const INTRO_MAP_EASE      = 'cubic-bezier(0.4, 0, 0.2, 1)'; // map expand easing
-export const INTRO_MAP_SCALE     = 0.62; // map scale on the title screen
-export const INTRO_MAP_SHIFT_Y   = '9%'; // downward shift on the title screen (room for title)
+export const INTRO_MAP_MAX_SIZE  = '64%'; // map max-w/h on the title screen (grows to 100%)
 
 // Map background — single image replaces per-tile sprites
 export const MAP_BG_SRC = '/assets/tiles/map-bg.png';
