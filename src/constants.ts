@@ -79,6 +79,9 @@ export const INTRO_MAP_MAX_SIZE  = '64%'; // map max-w/h while small (grows to 1
 // Dev tools — set true to show the Grid / Tiles editor buttons in the header
 export const SHOW_DEV_TOOLS = false;
 
+// Version label shown in the header (top-right)
+export const APP_VERSION = '00.01.00';
+
 // Map background — single image replaces per-tile sprites
 export const MAP_BG_SRC = '/assets/tiles/map-bg.png';
 
