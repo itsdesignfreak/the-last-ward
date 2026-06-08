@@ -76,6 +76,9 @@ export const INTRO_UI_IN_MS      = 500;  // HUD + UI fade in
 export const INTRO_MAP_EASE      = 'cubic-bezier(0.4, 0, 0.2, 1)'; // map expand easing
 export const INTRO_MAP_MAX_SIZE  = '64%'; // map max-w/h while small (grows to 100%)
 
+// Dev tools — set true to show the Grid / Tiles editor buttons in the header
+export const SHOW_DEV_TOOLS = false;
+
 // Map background — single image replaces per-tile sprites
 export const MAP_BG_SRC = '/assets/tiles/map-bg.png';
 

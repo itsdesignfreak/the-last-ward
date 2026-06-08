@@ -17,6 +17,7 @@ import {
   INTRO_FADE_IN_MS, INTRO_HOLD_MS,
   INTRO_MAP_EXPAND_MS, INTRO_UI_IN_MS, INTRO_MAP_EASE,
   INTRO_MAP_MAX_SIZE,
+  SHOW_DEV_TOOLS,
 } from './constants';
 import type { Tower, TowerType, TileOverrides } from './types';
 import { TOWER_STATS } from './engine/towerData';
@@ -219,22 +220,24 @@ export default function App() {
           </span>
           <span className="font-ui text-[16px] text-black">The Last Ward</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Pill
-            icon="/assets/ui/icons/grid.svg"
-            active={showDebug}
-            onClick={() => setShowDebug(v => !v)}
-          >
-            Grid
-          </Pill>
-          <Pill
-            icon="/assets/ui/icons/tiles.svg"
-            active={showTileEditor}
-            onClick={() => setShowTileEditor(v => !v)}
-          >
-            Tiles
-          </Pill>
-        </div>
+        {SHOW_DEV_TOOLS && (
+          <div className="flex items-center gap-3">
+            <Pill
+              icon="/assets/ui/icons/grid.svg"
+              active={showDebug}
+              onClick={() => setShowDebug(v => !v)}
+            >
+              Grid
+            </Pill>
+            <Pill
+              icon="/assets/ui/icons/tiles.svg"
+              active={showTileEditor}
+              onClick={() => setShowTileEditor(v => !v)}
+            >
+              Tiles
+            </Pill>
+          </div>
+        )}
       </header>
 
       {showSettings && (
