@@ -1,3 +1,5 @@
+import { Pill } from './Pill';
+
 interface Props {
   onPlayAgain: () => void;
 }
@@ -27,13 +29,11 @@ export function VictoryScreen({ onPlayAgain }: Props) {
         <p className="mt-4 font-ui text-lg tracking-wide text-white/75 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
           Thanks for playing!
         </p>
-        <button
-          onClick={onPlayAgain}
-          className="mt-8 rounded-md px-6 py-2.5 text-sm font-medium text-white transition-colors hover:brightness-110"
-          style={{ backgroundColor: '#cc6026' }}
-        >
-          Play Again
-        </button>
+        <div className="mt-8">
+          <Pill variant="accent" icon="/assets/ui/icons/sword.svg" onClick={onPlayAgain}>
+            Play Again
+          </Pill>
+        </div>
       </div>
     </div>
   );
