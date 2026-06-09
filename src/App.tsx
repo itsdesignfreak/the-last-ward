@@ -8,6 +8,7 @@ import { Pill } from './components/Pill';
 import { WaveOverlay } from './components/WaveOverlay';
 import type { WaveOverlayData } from './components/WaveOverlay';
 import { HowToPlay } from './components/HowToPlay';
+import { VictoryScreen } from './components/VictoryScreen';
 import {
   STARTING_GOLD, LIVES_START,
   GOLD_PER_KILL,
@@ -41,6 +42,7 @@ export default function App() {
   const [showObstacles,     setShowObstacles]     = useState(false);
   const [showNPC,           setShowNPC]           = useState(true);
   const [showHowToPlay,     setShowHowToPlay]     = useState(false);
+  const [showVictory,       setShowVictory]       = useState(false);
 
   // ── Intro animation (map → game) ─────────────────────────────────────────────
   // Phase 0 start (bg only) · 1 map fades in (small, centered) & holds
@@ -189,7 +191,11 @@ export default function App() {
   const handleWaveComplete = useCallback(() => {
     setWaveActive(false);
     setWave(w => {
-      setWaveOverlay({ id: ++overlayIdRef.current, kind: 'complete', wave: w });
+      if (w >= MAX_WAVES) {
+        setShowVictory(true);        // final wave cleared → end screen
+      } else {
+        setWaveOverlay({ id: ++overlayIdRef.current, kind: 'complete', wave: w });
+      }
       return w;
     });
   }, []);
@@ -263,6 +269,8 @@ export default function App() {
       )}
 
       {showHowToPlay && <HowToPlay onClose={() => setShowHowToPlay(false)} />}
+
+      {showVictory && <VictoryScreen onPlayAgain={() => window.location.reload()} />}
 
       {/* Lives-lost red vignette flash */}
       {livesFlashId > 0 && (
