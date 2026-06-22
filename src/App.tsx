@@ -105,21 +105,24 @@ export default function App() {
     bgm.volume = bgmVolume;
     bgmRef.current = bgm;
 
+    // Browsers block audio autoplay until the user interacts with the page,
+    // so start the BGM on the first gesture of any kind (click / key / touch).
+    const UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchstart'] as const;
     const tryPlay = () => {
+      UNLOCK_EVENTS.forEach(e => document.removeEventListener(e, tryPlay));
       if (bgmRef.current && bgmEnabled) {
         bgmRef.current.play().catch(() => {});
       }
     };
-    // Attempt immediate play (works if user already interacted)
+    // Attempt immediate play (works only if the user already interacted)
     bgm.play().catch(() => {
-      // Autoplay blocked — unlock on first click
-      document.addEventListener('click', tryPlay, { once: true });
+      UNLOCK_EVENTS.forEach(e => document.addEventListener(e, tryPlay, { once: true }));
     });
 
     return () => {
       bgm.pause();
       bgm.src = '';
-      document.removeEventListener('click', tryPlay);
+      UNLOCK_EVENTS.forEach(e => document.removeEventListener(e, tryPlay));
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
