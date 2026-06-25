@@ -9,6 +9,7 @@ import { WaveOverlay } from './components/WaveOverlay';
 import type { WaveOverlayData } from './components/WaveOverlay';
 import { HowToPlay } from './components/HowToPlay';
 import { VictoryScreen } from './components/VictoryScreen';
+import { BurnReveal } from './components/BurnReveal';
 import {
   STARTING_GOLD, LIVES_START,
   GOLD_PER_KILL,
@@ -16,9 +17,7 @@ import {
   TOWER_FOOTPRINT,
   CANVAS_WIDTH, CANVAS_HEIGHT,
   MAX_WAVES,
-  INTRO_FADE_IN_MS, INTRO_HOLD_MS,
-  INTRO_MAP_EXPAND_MS, INTRO_UI_IN_MS, INTRO_MAP_EASE,
-  INTRO_MAP_MAX_SIZE,
+  INTRO_UI_IN_MS,
   SHOW_DEV_TOOLS, APP_VERSION,
 } from './constants';
 import type { Tower, TowerType, TileOverrides } from './types';
@@ -44,28 +43,12 @@ export default function App() {
   const [showHowToPlay,     setShowHowToPlay]     = useState(false);
   const [showVictory,       setShowVictory]       = useState(false);
 
-  // ── Intro animation (map → game) ─────────────────────────────────────────────
-  // Phase 0 start (bg only) · 1 map fades in (small, centered) & holds
-  // · 2 map expands to fill · 3 HUD/UI fades in · 4 done.
-  const [introPhase, setIntroPhase] = useState(0);
-  useEffect(() => {
-    const expandAt = INTRO_FADE_IN_MS + INTRO_HOLD_MS;
-    const uiAt     = expandAt + INTRO_MAP_EXPAND_MS;
-    const doneAt   = uiAt + INTRO_UI_IN_MS;
-
-    const raf = requestAnimationFrame(() => setIntroPhase(1)); // trigger fade-in
-    const timers = [
-      setTimeout(() => setIntroPhase(2), expandAt),
-      setTimeout(() => setIntroPhase(3), uiAt),
-      setTimeout(() => setIntroPhase(4), doneAt),
-    ];
-    return () => { cancelAnimationFrame(raf); timers.forEach(clearTimeout); };
-  }, []);
-
-  // Derived intro flags
-  const introMapVisible = introPhase >= 1;
-  const introMapFull    = introPhase >= 2;
-  const introUiVisible  = introPhase >= 3;
+  // ── Burnt-paper reveal intro ─────────────────────────────────────────────────
+  // The map shows dithered ("ashen paper"); the first tap burns it away to
+  // reveal the live map, then the UI fades in. One-shot.
+  const [burnStarted, setBurnStarted] = useState(false);
+  const [revealed,    setRevealed]    = useState(false);
+  const introUiVisible = revealed;
 
   // ── Wave overlay ────────────────────────────────────────────────────────────
   const [waveOverlay, setWaveOverlay] = useState<WaveOverlayData | null>(null);
@@ -306,16 +289,14 @@ export default function App() {
             className="relative"
             style={{
               aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-              maxWidth: introMapFull ? '100%' : INTRO_MAP_MAX_SIZE,
-              maxHeight: introMapFull ? '100%' : INTRO_MAP_MAX_SIZE,
+              maxWidth: '100%',
+              maxHeight: '100%',
               borderStyle: 'solid',
               borderWidth: '18px',
               borderImageSource: 'url(/assets/ui/map-frame.png)',
               borderImageSlice: 26,
               borderImageWidth: '18px',
               filter: 'drop-shadow(0 11px 6.5px rgba(0,0,0,0.5))',
-              opacity: introMapVisible ? 1 : 0,
-              transition: `opacity ${INTRO_FADE_IN_MS}ms ease-out, max-width ${INTRO_MAP_EXPAND_MS}ms ${INTRO_MAP_EASE}, max-height ${INTRO_MAP_EXPAND_MS}ms ${INTRO_MAP_EASE}`,
             }}
           >
             <GameCanvas
@@ -337,6 +318,23 @@ export default function App() {
               sfxVolume={sfxVolume}
               floatingNumbers={floatingNumbers}
             />
+
+            {/* Burnt-paper reveal — dithered map burns away on first tap */}
+            {!revealed && (
+              <BurnReveal started={burnStarted} onComplete={() => setRevealed(true)} />
+            )}
+
+            {/* Tap-to-begin layer (over the dithered map, before the burn) */}
+            {!burnStarted && (
+              <div
+                onClick={() => setBurnStarted(true)}
+                className="absolute inset-0 z-40 flex cursor-pointer items-end justify-center pb-[9%]"
+              >
+                <span className="animate-pulse font-ui text-xs uppercase tracking-[0.25em] text-white/80 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+                  Click to Begin
+                </span>
+              </div>
+            )}
 
             {/* Wave start/complete banner — anchored to the map */}
             <WaveOverlay data={waveOverlay} onDone={() => setWaveOverlay(null)} />
