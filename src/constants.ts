@@ -84,7 +84,7 @@ export const APP_VERSION = '00.01.00';
 
 // Burnt-paper reveal intro — the map shows dithered, then burns away on tap
 export const MAP_DITHERED_SRC = '/assets/ui/map-dithered.png';
-export const BURN_DURATION_MS = 2200;  // time for the burn to fully reveal the map
+export const BURN_DURATION_MS = 2600;  // time for the burn to fully reveal the map
 export const BURN_RIM_WIDTH   = 0.08;  // ember rim thickness (normalized burn-order units)
 export const BURN_IRREGULAR   = 0.22;  // how wavy/torn the burn edge is (0 = clean circle)
 
