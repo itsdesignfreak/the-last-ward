@@ -87,6 +87,9 @@ export const MAP_DITHERED_SRC = '/assets/ui/map-dithered.png';
 export const BURN_DURATION_MS = 2600;  // time for the burn to fully reveal the map
 export const BURN_RIM_WIDTH   = 0.08;  // ember rim thickness (normalized burn-order units)
 export const BURN_IRREGULAR   = 0.22;  // how wavy/torn the burn edge is (0 = clean circle)
+export const BURN_MAP_SCALE   = 0.62;  // map size during the burn (scales to 1 once revealed)
+export const BURN_SCALE_UP_MS = 750;   // scale-up duration after the reveal
+export const BURN_SCALE_EASE  = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
 // Map background — single image replaces per-tile sprites
 export const MAP_BG_SRC = '/assets/tiles/map-bg.png';

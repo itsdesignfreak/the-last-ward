@@ -18,6 +18,7 @@ import {
   CANVAS_WIDTH, CANVAS_HEIGHT,
   MAX_WAVES,
   INTRO_UI_IN_MS,
+  BURN_MAP_SCALE, BURN_SCALE_UP_MS, BURN_SCALE_EASE,
   SHOW_DEV_TOOLS, APP_VERSION,
 } from './constants';
 import type { Tower, TowerType, TileOverrides } from './types';
@@ -44,11 +45,19 @@ export default function App() {
   const [showVictory,       setShowVictory]       = useState(false);
 
   // ── Burnt-paper reveal intro ─────────────────────────────────────────────────
-  // The map shows dithered ("ashen paper"); the first tap burns it away to
-  // reveal the live map, then the UI fades in. One-shot.
+  // Small dithered map → tap burns it away to reveal the (small) live map →
+  // the map scales up to full size → the UI fades in. One-shot.
   const [burnStarted, setBurnStarted] = useState(false);
   const [revealed,    setRevealed]    = useState(false);
-  const introUiVisible = revealed;
+  const [uiReady,     setUiReady]     = useState(false);
+  const introUiVisible = uiReady;
+
+  // Once revealed, the map scales up; bring the UI in after that finishes.
+  useEffect(() => {
+    if (!revealed) return;
+    const t = setTimeout(() => setUiReady(true), BURN_SCALE_UP_MS);
+    return () => clearTimeout(t);
+  }, [revealed]);
 
   // ── Wave overlay ────────────────────────────────────────────────────────────
   const [waveOverlay, setWaveOverlay] = useState<WaveOverlayData | null>(null);
@@ -297,6 +306,8 @@ export default function App() {
               borderImageSlice: 26,
               borderImageWidth: '18px',
               filter: 'drop-shadow(0 11px 6.5px rgba(0,0,0,0.5))',
+              transform: revealed ? 'scale(1)' : `scale(${BURN_MAP_SCALE})`,
+              transition: `transform ${BURN_SCALE_UP_MS}ms ${BURN_SCALE_EASE}`,
             }}
           >
             <GameCanvas
