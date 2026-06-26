@@ -335,21 +335,36 @@ export default function App() {
               <BurnReveal started={burnStarted} onComplete={() => setRevealed(true)} />
             )}
 
-            {/* Tap-to-begin layer (over the dithered map, before the burn) */}
+            {/* Tap-to-begin: invisible click catcher over the map */}
             {!burnStarted && (
               <div
                 onClick={() => setBurnStarted(true)}
-                className="absolute inset-0 z-40 flex cursor-pointer items-end justify-center pb-[3%]"
-              >
-                <span className="animate-pulse font-ui text-xs uppercase tracking-[0.25em] text-white/80 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
-                  Click to Begin
-                </span>
-              </div>
+                className="absolute inset-0 z-40 cursor-pointer"
+              />
             )}
 
             {/* Wave start/complete banner — anchored to the map */}
             <WaveOverlay data={waveOverlay} onDone={() => setWaveOverlay(null)} />
           </div>
+
+          {/* "Click the map to begin" prompt + filigree, below the map */}
+          {!burnStarted && (
+            <div className="pointer-events-none absolute bottom-[7%] left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
+              <svg width="280" height="16" viewBox="0 0 280 16" className="text-black/40" fill="currentColor">
+                <circle cx="40" cy="8" r="2" />
+                <path d="M46 8 l11 -4.5 v9 z" />
+                <rect x="60" y="7.5" width="60" height="1" />
+                <path d="M140 1 l7 7 l-7 7 l-7 -7 z" fill="none" stroke="currentColor" strokeWidth="1" />
+                <circle cx="140" cy="8" r="1.5" />
+                <rect x="160" y="7.5" width="60" height="1" />
+                <path d="M234 8 l-11 -4.5 v9 z" />
+                <circle cx="240" cy="8" r="2" />
+              </svg>
+              <span className="font-ui text-sm uppercase tracking-[0.3em] text-black/70">
+                Click the Map to Begin
+              </span>
+            </div>
+          )}
         </div>
       </main>
 
