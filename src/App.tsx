@@ -9,6 +9,7 @@ import { WaveOverlay } from './components/WaveOverlay';
 import type { WaveOverlayData } from './components/WaveOverlay';
 import { HowToPlay } from './components/HowToPlay';
 import { VictoryScreen } from './components/VictoryScreen';
+import { BurnReveal } from './components/BurnReveal';
 import {
   STARTING_GOLD, LIVES_START,
   GOLD_PER_KILL,
@@ -16,9 +17,9 @@ import {
   TOWER_FOOTPRINT,
   CANVAS_WIDTH, CANVAS_HEIGHT,
   MAX_WAVES,
-  INTRO_FADE_IN_MS, INTRO_HOLD_MS,
-  INTRO_MAP_EXPAND_MS, INTRO_UI_IN_MS, INTRO_MAP_EASE,
-  INTRO_MAP_MAX_SIZE,
+  INTRO_UI_IN_MS,
+  BURN_MAP_SCALE, BURN_SCALE_UP_MS, BURN_SCALE_EASE,
+  BG_LANDSCAPE_SRC,
   SHOW_DEV_TOOLS, APP_VERSION,
 } from './constants';
 import type { Tower, TowerType, TileOverrides } from './types';
@@ -44,28 +45,20 @@ export default function App() {
   const [showHowToPlay,     setShowHowToPlay]     = useState(false);
   const [showVictory,       setShowVictory]       = useState(false);
 
-  // ── Intro animation (map → game) ─────────────────────────────────────────────
-  // Phase 0 start (bg only) · 1 map fades in (small, centered) & holds
-  // · 2 map expands to fill · 3 HUD/UI fades in · 4 done.
-  const [introPhase, setIntroPhase] = useState(0);
+  // ── Burnt-paper reveal intro ─────────────────────────────────────────────────
+  // Small dithered map → tap burns it away to reveal the (small) live map →
+  // the map scales up to full size → the UI fades in. One-shot.
+  const [burnStarted, setBurnStarted] = useState(false);
+  const [revealed,    setRevealed]    = useState(false);
+  const [uiReady,     setUiReady]     = useState(false);
+  const introUiVisible = uiReady;
+
+  // Once revealed, the map scales up; bring the UI in after that finishes.
   useEffect(() => {
-    const expandAt = INTRO_FADE_IN_MS + INTRO_HOLD_MS;
-    const uiAt     = expandAt + INTRO_MAP_EXPAND_MS;
-    const doneAt   = uiAt + INTRO_UI_IN_MS;
-
-    const raf = requestAnimationFrame(() => setIntroPhase(1)); // trigger fade-in
-    const timers = [
-      setTimeout(() => setIntroPhase(2), expandAt),
-      setTimeout(() => setIntroPhase(3), uiAt),
-      setTimeout(() => setIntroPhase(4), doneAt),
-    ];
-    return () => { cancelAnimationFrame(raf); timers.forEach(clearTimeout); };
-  }, []);
-
-  // Derived intro flags
-  const introMapVisible = introPhase >= 1;
-  const introMapFull    = introPhase >= 2;
-  const introUiVisible  = introPhase >= 3;
+    if (!revealed) return;
+    const t = setTimeout(() => setUiReady(true), BURN_SCALE_UP_MS);
+    return () => clearTimeout(t);
+  }, [revealed]);
 
   // ── Wave overlay ────────────────────────────────────────────────────────────
   const [waveOverlay, setWaveOverlay] = useState<WaveOverlayData | null>(null);
@@ -213,7 +206,18 @@ export default function App() {
   }, [tileOverrides]);
 
   return (
-    <div className="h-screen bg-[#f0efea] text-black flex flex-col overflow-hidden font-ui">
+    <div className="relative isolate h-screen bg-[#f0efea] text-black flex flex-col overflow-hidden font-ui">
+      {/* Faint dithered horizon along the very bottom of the screen (start only) */}
+      {!revealed && (
+        <img
+          src={BG_LANDSCAPE_SRC}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className={`pointer-events-none absolute inset-x-0 bottom-0 -z-10 w-full select-none transition-opacity duration-700 ${burnStarted ? 'opacity-0' : 'opacity-10'}`}
+        />
+      )}
+
       {/* ── Top bar: logo + title (left), dev tools (right) ── */}
       <header
         className={`shrink-0 flex items-center justify-between p-6 border-b border-black/10 transition-opacity ${introUiVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
@@ -300,22 +304,21 @@ export default function App() {
             onClear={() => setTileOverrides({})}
           />
         )}
-        <div className="relative flex-1 min-h-0 flex items-center justify-center p-8 overflow-hidden">
+        <div className="relative flex-1 min-h-0 flex flex-col items-center justify-center gap-6 p-8 overflow-hidden">
           {/* Wooden picture-frame around the map (border-image from the Figma asset) */}
           <div
-            className="relative"
+            className="relative z-10 shrink-0"
             style={{
               aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-              maxWidth: introMapFull ? '100%' : INTRO_MAP_MAX_SIZE,
-              maxHeight: introMapFull ? '100%' : INTRO_MAP_MAX_SIZE,
+              maxWidth: revealed ? '100%' : `${BURN_MAP_SCALE * 100}%`,
+              maxHeight: revealed ? '100%' : `${BURN_MAP_SCALE * 100}%`,
               borderStyle: 'solid',
               borderWidth: '18px',
               borderImageSource: 'url(/assets/ui/map-frame.png)',
               borderImageSlice: 26,
               borderImageWidth: '18px',
               filter: 'drop-shadow(0 11px 6.5px rgba(0,0,0,0.5))',
-              opacity: introMapVisible ? 1 : 0,
-              transition: `opacity ${INTRO_FADE_IN_MS}ms ease-out, max-width ${INTRO_MAP_EXPAND_MS}ms ${INTRO_MAP_EASE}, max-height ${INTRO_MAP_EXPAND_MS}ms ${INTRO_MAP_EASE}`,
+              transition: `max-width ${BURN_SCALE_UP_MS}ms ${BURN_SCALE_EASE}, max-height ${BURN_SCALE_UP_MS}ms ${BURN_SCALE_EASE}`,
             }}
           >
             <GameCanvas
@@ -338,9 +341,29 @@ export default function App() {
               floatingNumbers={floatingNumbers}
             />
 
+            {/* Burnt-paper reveal — dithered map burns away on first tap */}
+            {!revealed && (
+              <BurnReveal started={burnStarted} onComplete={() => setRevealed(true)} />
+            )}
+
+            {/* Tap-to-begin: invisible click catcher over the map */}
+            {!burnStarted && (
+              <div
+                onClick={() => setBurnStarted(true)}
+                className="absolute inset-0 z-40 cursor-pointer"
+              />
+            )}
+
             {/* Wave start/complete banner — anchored to the map */}
             <WaveOverlay data={waveOverlay} onDone={() => setWaveOverlay(null)} />
           </div>
+
+          {/* "Click the map to begin" prompt — blinking, 24px below the map */}
+          {!burnStarted && (
+            <span className="pointer-events-none shrink-0 animate-pulse font-ui text-xl uppercase tracking-[0.3em] text-black/70">
+              Click the Map to Begin
+            </span>
+          )}
         </div>
       </main>
 
