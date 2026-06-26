@@ -19,6 +19,7 @@ import {
   MAX_WAVES,
   INTRO_UI_IN_MS,
   BURN_MAP_SCALE, BURN_SCALE_UP_MS, BURN_SCALE_EASE,
+  BG_LANDSCAPE_SRC,
   SHOW_DEV_TOOLS, APP_VERSION,
 } from './constants';
 import type { Tower, TowerType, TileOverrides } from './types';
@@ -293,9 +294,20 @@ export default function App() {
           />
         )}
         <div className="relative flex-1 min-h-0 flex items-center justify-center p-8 overflow-hidden">
+          {/* Faint dithered horizon along the bottom (start screen only) */}
+          {!revealed && (
+            <img
+              src={BG_LANDSCAPE_SRC}
+              alt=""
+              aria-hidden
+              draggable={false}
+              className={`pointer-events-none absolute inset-x-0 bottom-0 z-0 w-full select-none transition-opacity duration-700 ${burnStarted ? 'opacity-0' : 'opacity-30'}`}
+            />
+          )}
+
           {/* Wooden picture-frame around the map (border-image from the Figma asset) */}
           <div
-            className="relative"
+            className="relative z-10"
             style={{
               aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
               maxWidth: '100%',
