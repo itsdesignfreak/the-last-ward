@@ -304,22 +304,21 @@ export default function App() {
             onClear={() => setTileOverrides({})}
           />
         )}
-        <div className="relative flex-1 min-h-0 flex items-center justify-center p-8 overflow-hidden">
+        <div className="relative flex-1 min-h-0 flex flex-col items-center justify-center gap-6 p-8 overflow-hidden">
           {/* Wooden picture-frame around the map (border-image from the Figma asset) */}
           <div
-            className="relative z-10"
+            className="relative z-10 shrink-0"
             style={{
               aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-              maxWidth: '100%',
-              maxHeight: '100%',
+              maxWidth: revealed ? '100%' : `${BURN_MAP_SCALE * 100}%`,
+              maxHeight: revealed ? '100%' : `${BURN_MAP_SCALE * 100}%`,
               borderStyle: 'solid',
               borderWidth: '18px',
               borderImageSource: 'url(/assets/ui/map-frame.png)',
               borderImageSlice: 26,
               borderImageWidth: '18px',
               filter: 'drop-shadow(0 11px 6.5px rgba(0,0,0,0.5))',
-              transform: revealed ? 'scale(1)' : `scale(${BURN_MAP_SCALE})`,
-              transition: `transform ${BURN_SCALE_UP_MS}ms ${BURN_SCALE_EASE}`,
+              transition: `max-width ${BURN_SCALE_UP_MS}ms ${BURN_SCALE_EASE}, max-height ${BURN_SCALE_UP_MS}ms ${BURN_SCALE_EASE}`,
             }}
           >
             <GameCanvas
@@ -359,23 +358,11 @@ export default function App() {
             <WaveOverlay data={waveOverlay} onDone={() => setWaveOverlay(null)} />
           </div>
 
-          {/* "Click the map to begin" prompt + filigree, below the map */}
+          {/* "Click the map to begin" prompt — blinking, 24px below the map */}
           {!burnStarted && (
-            <div className="pointer-events-none absolute bottom-[7%] left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
-              <svg width="280" height="16" viewBox="0 0 280 16" className="text-black/40" fill="currentColor">
-                <circle cx="40" cy="8" r="2" />
-                <path d="M46 8 l11 -4.5 v9 z" />
-                <rect x="60" y="7.5" width="60" height="1" />
-                <path d="M140 1 l7 7 l-7 7 l-7 -7 z" fill="none" stroke="currentColor" strokeWidth="1" />
-                <circle cx="140" cy="8" r="1.5" />
-                <rect x="160" y="7.5" width="60" height="1" />
-                <path d="M234 8 l-11 -4.5 v9 z" />
-                <circle cx="240" cy="8" r="2" />
-              </svg>
-              <span className="font-ui text-xl uppercase tracking-[0.3em] text-black/70">
-                Click the Map to Begin
-              </span>
-            </div>
+            <span className="pointer-events-none shrink-0 animate-pulse font-ui text-xl uppercase tracking-[0.3em] text-black/70">
+              Click the Map to Begin
+            </span>
           )}
         </div>
       </main>
