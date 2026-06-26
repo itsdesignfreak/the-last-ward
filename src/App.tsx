@@ -206,7 +206,18 @@ export default function App() {
   }, [tileOverrides]);
 
   return (
-    <div className="h-screen bg-[#f0efea] text-black flex flex-col overflow-hidden font-ui">
+    <div className="relative isolate h-screen bg-[#f0efea] text-black flex flex-col overflow-hidden font-ui">
+      {/* Faint dithered horizon along the very bottom of the screen (start only) */}
+      {!revealed && (
+        <img
+          src={BG_LANDSCAPE_SRC}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className={`pointer-events-none absolute inset-x-0 bottom-0 -z-10 w-full select-none transition-opacity duration-700 ${burnStarted ? 'opacity-0' : 'opacity-30'}`}
+        />
+      )}
+
       {/* ── Top bar: logo + title (left), dev tools (right) ── */}
       <header
         className={`shrink-0 flex items-center justify-between p-6 border-b border-black/10 transition-opacity ${introUiVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
@@ -294,17 +305,6 @@ export default function App() {
           />
         )}
         <div className="relative flex-1 min-h-0 flex items-center justify-center p-8 overflow-hidden">
-          {/* Faint dithered horizon along the bottom (start screen only) */}
-          {!revealed && (
-            <img
-              src={BG_LANDSCAPE_SRC}
-              alt=""
-              aria-hidden
-              draggable={false}
-              className={`pointer-events-none absolute inset-x-0 bottom-0 z-0 w-full select-none transition-opacity duration-700 ${burnStarted ? 'opacity-0' : 'opacity-30'}`}
-            />
-          )}
-
           {/* Wooden picture-frame around the map (border-image from the Figma asset) */}
           <div
             className="relative z-10"
