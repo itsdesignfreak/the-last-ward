@@ -214,7 +214,7 @@ export default function App() {
           alt=""
           aria-hidden
           draggable={false}
-          className={`pointer-events-none absolute inset-x-0 bottom-0 -z-10 w-full select-none transition-opacity duration-700 ${burnStarted ? 'opacity-0' : 'opacity-30'}`}
+          className={`pointer-events-none absolute inset-x-0 bottom-0 -z-10 w-full select-none transition-opacity duration-700 ${burnStarted ? 'opacity-0' : 'opacity-10'}`}
         />
       )}
 
@@ -372,7 +372,7 @@ export default function App() {
                 <path d="M234 8 l-11 -4.5 v9 z" />
                 <circle cx="240" cy="8" r="2" />
               </svg>
-              <span className="font-ui text-sm uppercase tracking-[0.3em] text-black/70">
+              <span className="font-ui text-xl uppercase tracking-[0.3em] text-black/70">
                 Click the Map to Begin
               </span>
             </div>
