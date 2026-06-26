@@ -339,7 +339,7 @@ export default function App() {
             {!burnStarted && (
               <div
                 onClick={() => setBurnStarted(true)}
-                className="absolute inset-0 z-40 flex cursor-pointer items-end justify-center pb-[9%]"
+                className="absolute inset-0 z-40 flex cursor-pointer items-end justify-center pb-[3%]"
               >
                 <span className="animate-pulse font-ui text-xs uppercase tracking-[0.25em] text-white/80 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
                   Click to Begin
