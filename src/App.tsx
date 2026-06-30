@@ -375,15 +375,17 @@ export default function App() {
 
             {/* Wave start/complete banner — anchored to the map */}
             <WaveOverlay data={waveOverlay} onDone={() => setWaveOverlay(null)} />
-          </div>
 
-          {/* "Click the map to begin" prompt — blinking; fades out on tap
-              (stays mounted so the map doesn't recenter/jump) */}
-          <span
-            className={`pointer-events-none shrink-0 font-ui text-xl uppercase tracking-[0.3em] text-black/70 transition-opacity duration-700 ${burnStarted ? 'opacity-0' : 'opacity-100 animate-pulse'}`}
-          >
-            Click the Map to Begin
-          </span>
+            {/* "Click the map to begin" prompt — blinking; fades out on tap.
+                Absolutely positioned 24px below the frame so it never affects
+                layout: the map frame stays the only in-flow child and centers
+                cleanly, and the map never recenters/jumps on tap. */}
+            <span
+              className={`pointer-events-none absolute left-1/2 top-full mt-6 -translate-x-1/2 whitespace-nowrap font-ui text-xl uppercase tracking-[0.3em] text-black/70 transition-opacity duration-700 ${burnStarted ? 'opacity-0' : 'opacity-100 animate-pulse'}`}
+            >
+              Click the Map to Begin
+            </span>
+          </div>
         </div>
       </main>
 
