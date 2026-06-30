@@ -358,12 +358,13 @@ export default function App() {
             <WaveOverlay data={waveOverlay} onDone={() => setWaveOverlay(null)} />
           </div>
 
-          {/* "Click the map to begin" prompt — blinking, 24px below the map */}
-          {!burnStarted && (
-            <span className="pointer-events-none shrink-0 animate-pulse font-ui text-xl uppercase tracking-[0.3em] text-black/70">
-              Click the Map to Begin
-            </span>
-          )}
+          {/* "Click the map to begin" prompt — blinking; fades out on tap
+              (stays mounted so the map doesn't recenter/jump) */}
+          <span
+            className={`pointer-events-none shrink-0 font-ui text-xl uppercase tracking-[0.3em] text-black/70 transition-opacity duration-700 ${burnStarted ? 'opacity-0' : 'opacity-100 animate-pulse'}`}
+          >
+            Click the Map to Begin
+          </span>
         </div>
       </main>
 
