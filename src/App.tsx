@@ -10,6 +10,7 @@ import type { WaveOverlayData } from './components/WaveOverlay';
 import { HowToPlay } from './components/HowToPlay';
 import { VictoryScreen } from './components/VictoryScreen';
 import { BurnReveal } from './components/BurnReveal';
+import { MobileNotice } from './components/MobileNotice';
 import {
   STARTING_GOLD, LIVES_START,
   GOLD_PER_KILL,
@@ -21,6 +22,7 @@ import {
   BURN_MAP_SCALE, BURN_SCALE_UP_MS, BURN_SCALE_EASE,
   BG_LANDSCAPE_SRC,
   SHOW_DEV_TOOLS, APP_VERSION,
+  MOBILE_BREAKPOINT_PX,
 } from './constants';
 import type { Tower, TowerType, TileOverrides } from './types';
 import { TOWER_STATS } from './engine/towerData';
@@ -52,6 +54,20 @@ export default function App() {
   const [revealed,    setRevealed]    = useState(false);
   const [uiReady,     setUiReady]     = useState(false);
   const introUiVisible = uiReady;
+
+  // ── Mobile gate ──────────────────────────────────────────────────────────────
+  // The Last Ward is desktop-first; below the breakpoint we show a notice
+  // instead of the game. Tracks live so rotating / resizing updates it.
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' &&
+    window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX - 1}px)`).matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX - 1}px)`);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   // Once revealed, the map scales up; bring the UI in after that finishes.
   useEffect(() => {
@@ -204,6 +220,9 @@ export default function App() {
       [key]: current === 'obstacle' ? 'grass' : 'obstacle',
     }));
   }, [tileOverrides]);
+
+  // Small screens get the desktop-recommended notice instead of the game.
+  if (isMobile) return <MobileNotice />;
 
   return (
     <div className="relative isolate h-screen bg-[#f0efea] text-black flex flex-col overflow-hidden font-ui">

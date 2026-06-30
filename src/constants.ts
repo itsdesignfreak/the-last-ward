@@ -82,6 +82,10 @@ export const SHOW_DEV_TOOLS = false;
 // Version label shown in the header (top-right)
 export const APP_VERSION = '00.01.00';
 
+// Below this viewport width (px) we show a "please use desktop" notice instead
+// of the game — it's a desktop-first experience and needs the room.
+export const MOBILE_BREAKPOINT_PX = 768;
+
 // Burnt-paper reveal intro — the map shows dithered, then burns away on tap
 export const MAP_DITHERED_SRC = '/assets/ui/map-dithered.png';
 export const BG_LANDSCAPE_SRC = '/assets/ui/bg-landscape.png'; // faint horizon on the start screen
