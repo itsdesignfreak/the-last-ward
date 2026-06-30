@@ -252,7 +252,10 @@ export default function App() {
           >
             <img src="/assets/ui/icons/logo.svg" alt="" className="block size-4" draggable={false} />
           </span>
-          <span className="font-ui text-[16px] text-black">The Last Ward</span>
+          <div className="flex flex-col leading-tight">
+            <span className="font-ui text-[16px] text-black">The Last Ward</span>
+            <span className="font-ui text-[13px] tabular-nums text-black/40">v{APP_VERSION}</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {SHOW_DEV_TOOLS && (
@@ -274,7 +277,6 @@ export default function App() {
             </>
           )}
           <Pill onClick={() => setShowHowToPlay(true)}>How to Play</Pill>
-          <span className="font-ui text-[13px] tabular-nums text-black/40">v{APP_VERSION}</span>
         </div>
       </header>
 
